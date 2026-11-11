@@ -347,6 +347,86 @@ npm run dev
         </div>
       </div>
 
+      {/* System Documentation & Agent Playbooks Under /docs/ */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <FileCode className="w-5 h-5 text-blue-600" />
+              Project Documentation Suite (`/docs/`) for Downstream Agents
+            </h2>
+            <p className="text-xs text-slate-500">
+              Modular specifications designed to be consumed by human engineers and autonomous AI agents.
+            </p>
+          </div>
+          <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
+            7 Specifications
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          {[
+            {
+              file: 'docs/README.md',
+              title: 'Master Architecture & Overview',
+              desc: 'High-level executive blueprint, documentation map, and 6-stage autonomous workflow loop.'
+            },
+            {
+              file: 'docs/01-ARCHITECTURE-AND-VISION.md',
+              title: 'System Architecture & Multi-Agent Swarm',
+              desc: 'System design, agent roles, principles (zero base code modification, target: Cloud).'
+            },
+            {
+              file: 'docs/02-REALTIME-DOCS-AND-RAG.md',
+              title: 'Real-Time Docs & RAG Engine',
+              desc: 'Live Microsoft Learn crawler, semantic chunking, and the 3-step self-reflection loop.'
+            },
+            {
+              file: 'docs/03-AL-ENGINEERING-AND-COMPILER.md',
+              title: 'AL Extension Code & Compiler Guide',
+              desc: 'Syntax rules for TableExt, PageExt, Codeunits, API Pages, and alc.exe CLI integration.'
+            },
+            {
+              file: 'docs/04-PLAYWRIGHT-BROWSER-AUTOMATION.md',
+              title: 'Playwright BC Web Client Automation',
+              desc: 'Resilient selector conventions, virtualized DOM strategies, Tell Me, and Page Inspector.'
+            },
+            {
+              file: 'docs/05-REST-API-AND-NEXTJS-INTEGRATION.md',
+              title: 'REST API & Next.js Integration Guide',
+              desc: 'Entra ID OAuth2 token caching, Route Handlers, TypeScript SDK, and React custom hooks.'
+            },
+            {
+              file: 'docs/06-IMPLEMENTATION-ROADMAP.md',
+              title: 'Phased Implementation Roadmap',
+              desc: '6-phase plan from MVP to BcContainerHelper Docker sandboxes and CI/CD pipelines.'
+            },
+            {
+              file: 'docs/AGENT-INSTRUCTIONS.md',
+              title: 'Downstream AI Agent Playbook',
+              desc: 'Machine-actionable prompts, JSON schemas, guardrails, and error recovery protocols.'
+            }
+          ].map(doc => (
+            <div
+              key={doc.file}
+              className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-1 hover:border-blue-400 transition"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[10px] text-blue-600 dark:text-blue-400 font-bold">
+                  {doc.file}
+                </span>
+              </div>
+              <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs">
+                {doc.title}
+              </h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                {doc.desc}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 };
