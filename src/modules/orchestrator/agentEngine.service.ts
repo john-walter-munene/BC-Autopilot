@@ -1,17 +1,17 @@
-import { FunctionalRequirementDoc, AlFile, PlaywrightSuite, EndpointArtifact, AgentPhase } from '../../types/agent';
-import { generateAlExtensionFromFrd } from '../../services/alGenerator';
-import { generatePlaywrightSuite } from '../../services/playwrightGenerator';
-import { generateEndpointArtifacts } from '../../services/endpointGenerator';
-import { validateAlProject } from '../../utils/alLinter';
-import { computeVerifiableBuildRecord } from '../settlements/settlementService';
-import { VerifiableBuildRecord } from '../settlements/types';
+import { FunctionalRequirementDoc, AlFile, PlaywrightSuite, EndpointArtifact, AgentPhase } from '../../types/agent.ts';
+import { generateAlExtensionFromFrd } from '../../services/alGenerator.ts';
+import { generatePlaywrightSuite } from '../../services/playwrightGenerator.ts';
+import { generateEndpointArtifacts } from '../../services/endpointGenerator.ts';
+import { validateAlProject } from '../../utils/alLinter.ts';
+import { computeVerificationAuditRecord } from '../verification/verification.service.ts';
+import type { VerificationAuditRecord } from '../verification/types.ts';
 
 export interface WorkflowExecutionResult {
   frd: FunctionalRequirementDoc;
   alFiles: AlFile[];
   playwrightSuite: PlaywrightSuite;
   endpointArtifact: EndpointArtifact;
-  verifiableRecord: VerifiableBuildRecord;
+  auditRecord: VerificationAuditRecord;
   diagnosticsPassed: boolean;
 }
 
@@ -45,16 +45,16 @@ export class AgentEngineService {
     onStageUpdate?.('crafting_endpoints', 5, 'Generating Next.js Route Handler and React hooks.');
     const endpointArtifact = generateEndpointArtifacts(frd);
 
-    // Stage 7: Verifiable Settlement (Overlay pattern)
-    onStageUpdate?.('completed', 6, 'Generated cryptographic SHA-256 fingerprint & verified settlement.');
-    const verifiableRecord = computeVerifiableBuildRecord(frd, validation.filesWithDiagnostics, playwrightSuite);
+    // Stage 7: Build Verification & Quality Audit
+    onStageUpdate?.('completed', 6, 'Generated release verification audit and SHA-256 package checksum.');
+    const auditRecord = computeVerificationAuditRecord(frd, validation.filesWithDiagnostics, playwrightSuite);
 
     return {
       frd,
       alFiles: validation.filesWithDiagnostics,
       playwrightSuite,
       endpointArtifact,
-      verifiableRecord,
+      auditRecord,
       diagnosticsPassed: validation.isValid,
     };
   }

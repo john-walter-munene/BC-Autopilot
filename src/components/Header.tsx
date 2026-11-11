@@ -72,8 +72,8 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'playwright', label: 'Playwright Automation', icon: PlaySquare },
     { id: 'nextjs', label: 'React / Next.js Bridge', icon: Layers },
     { id: 'learning', label: 'Continuous Learning & Memory', icon: Brain },
-    { id: 'settlement', label: 'Verifiable Settlement', icon: Award },
-    { id: 'research', label: 'Research Evaluation', icon: ShieldCheck },
+    { id: 'verification', label: 'Build Verification', icon: ShieldCheck },
+    { id: 'research', label: 'Research Evaluation', icon: Award },
   ];
 
   return (
@@ -89,14 +89,14 @@ export const Header: React.FC<HeaderProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-slate-900 dark:text-white tracking-tight text-base sm:text-lg">
-                  ALchemy <span className="text-blue-600 dark:text-blue-400">365</span>
+                  BC <span className="text-blue-600 dark:text-blue-400">Autopilot</span>
                 </span>
                 <span className="text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                  BC Agent
+                  Autonomous Agent
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
-                Autonomous Dynamics 365 Business Central Engineer
+                Microsoft Dynamics 365 Business Central Engineering Agent
               </p>
             </div>
           </div>
