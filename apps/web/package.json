@@ -1,0 +1,18 @@
+{
+  "name": "@alchemy365/web",
+  "version": "1.0.0",
+  "description": "Frontend web client and autonomous agent control console for Dynamics 365 Business Central",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1",
+    "lucide-react": "^0.546.0",
+    "motion": "^12.23.24"
+  }
+}

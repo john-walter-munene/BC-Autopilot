@@ -367,9 +367,24 @@ npm run dev
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
           {[
             {
-              file: 'docs/README.md',
-              title: 'Master Architecture & Overview',
-              desc: 'High-level executive blueprint, documentation map, and 6-stage autonomous workflow loop.'
+              file: 'docs/SPEC.md',
+              title: 'MVP Specification & Requirements',
+              desc: 'Full specification adapted from Overlay: functional requirements, compiler constraints, and verification criteria.'
+            },
+            {
+              file: 'docs/ARCHITECTURE.md',
+              title: 'System Architecture & Data Flows',
+              desc: 'Modular full-stack domain layout (modules/, common/, config/) mirroring Overlay repository patterns.'
+            },
+            {
+              file: 'docs/ROADMAP.md',
+              title: 'Phased Delivery Roadmap (Phase 0 - 4)',
+              desc: 'Phased implementation plan with explicit milestone exit criteria from MVP to AppSource.'
+            },
+            {
+              file: 'docs/NAMING.md',
+              title: 'Branding, Taxonomy & Domain Dictionary',
+              desc: 'Taxonomy of ALchemy 365, Business Central AL objects, and verifiable settlement concepts.'
             },
             {
               file: 'docs/01-ARCHITECTURE-AND-VISION.md',
@@ -395,11 +410,6 @@ npm run dev
               file: 'docs/05-REST-API-AND-NEXTJS-INTEGRATION.md',
               title: 'REST API & Next.js Integration Guide',
               desc: 'Entra ID OAuth2 token caching, Route Handlers, TypeScript SDK, and React custom hooks.'
-            },
-            {
-              file: 'docs/06-IMPLEMENTATION-ROADMAP.md',
-              title: 'Phased Implementation Roadmap',
-              desc: '6-phase plan from MVP to BcContainerHelper Docker sandboxes and CI/CD pipelines.'
             },
             {
               file: 'docs/AGENT-INSTRUCTIONS.md',

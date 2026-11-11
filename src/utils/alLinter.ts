@@ -1,4 +1,4 @@
-import { AlFile } from '../types/agent';
+import { AlFile } from '../types/agent.ts';
 
 export interface AlDiagnostic {
   severity: 'info' | 'warning' | 'error';
@@ -6,9 +6,20 @@ export interface AlDiagnostic {
   message: string;
 }
 
-export function lintAlCode(filename: string, content: string): AlDiagnostic[] {
+export interface AlLintResult {
+  valid: boolean;
+  errors: AlDiagnostic[];
+  warnings: AlDiagnostic[];
+  diagnostics: AlDiagnostic[];
+}
+
+export function lintAlCode(filenameOrContent: string, maybeContent?: string): AlDiagnostic[] {
+  const isSingleArg = maybeContent === undefined;
+  const filename = isSingleArg ? 'extension.al' : filenameOrContent;
+  const content = isSingleArg ? filenameOrContent : maybeContent;
+
   const diagnostics: AlDiagnostic[] = [];
-  const lines = content.split('\n');
+  const lines = (content || '').split('\n');
 
   if (filename.endsWith('.json')) {
     try {
@@ -18,11 +29,12 @@ export function lintAlCode(filename: string, content: string): AlDiagnostic[] {
         line: 1,
         message: 'Valid JSON manifest format.'
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const err = e instanceof Error ? e.message : String(e);
       diagnostics.push({
         severity: 'error',
         line: 1,
-        message: `JSON syntax error: ${e.message}`
+        message: `JSON syntax error: ${err}`
       });
     }
     return diagnostics;
@@ -52,6 +64,19 @@ export function lintAlCode(filename: string, content: string): AlDiagnostic[] {
     const lineNum = i + 1;
     const line = lines[i].trim();
 
+    // Check object ID ranges (warn if outside 50100..50149 or 50000..99999)
+    const objectMatch = line.match(/^(?:tableextension|pageextension|page|codeunit|table|permissionset)\s+(\d+)/i);
+    if (objectMatch) {
+      const id = parseInt(objectMatch[1], 10);
+      if (id < 50000 || id > 99999) {
+        diagnostics.push({
+          severity: 'warning',
+          line: lineNum,
+          message: `Object ID ${id} is outside customary range (50100..50149). Custom objects should reside in per-tenant range.`
+        });
+      }
+    }
+
     // Field definition missing DataClassification
     if (line.startsWith('field(') && !content.includes('DataClassification') && !filename.includes('API')) {
       diagnostics.push({
@@ -64,7 +89,6 @@ export function lintAlCode(filename: string, content: string): AlDiagnostic[] {
     // Page field missing ToolTip
     if (filename.includes('Ext') || filename.includes('Card') || filename.includes('List')) {
       if (line.startsWith('field(') && !line.includes('Rec.SystemId')) {
-        // Look ahead 5 lines for ToolTip
         const lookahead = lines.slice(i, Math.min(i + 6, lines.length)).join(' ');
         if (!lookahead.includes('ToolTip') && !filename.includes('API')) {
           diagnostics.push({
@@ -104,6 +128,18 @@ export function lintAlCode(filename: string, content: string): AlDiagnostic[] {
   }
 
   return diagnostics;
+}
+
+export function lintAlCodeDetailed(filenameOrContent: string, maybeContent?: string): AlLintResult {
+  const diagnostics = lintAlCode(filenameOrContent, maybeContent);
+  const errors = diagnostics.filter(d => d.severity === 'error');
+  const warnings = diagnostics.filter(d => d.severity === 'warning');
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+    diagnostics
+  };
 }
 
 export function validateAlProject(files: AlFile[]): { isValid: boolean; filesWithDiagnostics: AlFile[] } {

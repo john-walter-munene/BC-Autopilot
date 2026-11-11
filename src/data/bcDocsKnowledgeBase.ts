@@ -488,3 +488,5 @@ export async function GET(req: NextRequest) {
     ]
   }
 ];
+
+export const bcKnowledgeBase = BC_DOCS_KNOWLEDGE_BASE;

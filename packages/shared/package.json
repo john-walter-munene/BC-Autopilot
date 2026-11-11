@@ -1,0 +1,8 @@
+{
+  "name": "@alchemy365/shared",
+  "version": "1.0.0",
+  "description": "Shared domain types, constants, error classes, and cryptographic utilities",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts"
+}

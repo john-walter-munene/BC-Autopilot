@@ -190,3 +190,41 @@ test.describe('D365 Business Central Web Client UI Customization & Field Validat
     totalDurationMs: 3520
   };
 }
+
+export function generatePlaywrightTestSuite(customFields: string[] = [], targetPage = 'Customer Card'): PlaywrightSuite {
+  const steps: PlaywrightStepResult[] = [
+    {
+      stepNumber: 1,
+      title: 'Navigate to Business Central Web Client',
+      action: 'navigate',
+      expectedOutcome: 'Client shell and role center hydrate successfully',
+      status: 'pending',
+      durationMs: 420
+    },
+    {
+      stepNumber: 2,
+      title: `Navigate to ${targetPage} via Tell Me Search (Alt+Q)`,
+      action: 'open_tell_me',
+      expectedOutcome: `${targetPage} opens with all FastTabs expanded`,
+      status: 'pending',
+      durationMs: 380
+    },
+    {
+      stepNumber: 3,
+      title: 'Verify Custom Extension Fields & Actions',
+      action: 'assert_dom',
+      expectedOutcome: 'Fields and action triggers verified on page',
+      status: 'pending',
+      durationMs: 290
+    }
+  ];
+
+  return {
+    filename: 'tests/bc-customization.spec.ts',
+    targetUrl: 'https://businesscentral.dynamics.com/sandbox',
+    testCode: '// Generated Playwright Test Suite',
+    steps,
+    lastRunStatus: 'idle',
+    totalDurationMs: 1090
+  };
+}

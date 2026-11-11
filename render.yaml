@@ -1,0 +1,83 @@
+# Render Blueprint Specification for Business Central Autonomous Agent
+# Mirrors Overlay (CognitronTechnologies / john-walter-munene) infrastructure-as-code configuration
+
+services:
+  # Web API & Frontend Service
+  - type: web
+    name: bc-agent-api
+    env: node
+    plan: standard
+    buildCommand: npm install && npm run build
+    startCommand: node server.ts
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: APP_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bc-agent-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: bc-agent-redis
+          property: connectionString
+      - key: BC_TENANT_ID
+        sync: false
+      - key: BC_CLIENT_ID
+        sync: false
+      - key: BC_CLIENT_SECRET
+        sync: false
+      - key: BC_ENVIRONMENT
+        value: Production
+      - key: BC_COMPANY_ID
+        sync: false
+
+  # Background Worker Service (BullMQ / Queue Processing / Playwright Automation)
+  - type: worker
+    name: bc-agent-worker
+    env: node
+    plan: standard
+    buildCommand: npm install && npm run build
+    startCommand: npx tsx src/modules/jobs/worker.ts
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bc-agent-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: bc-agent-redis
+          property: connectionString
+      - key: BC_TENANT_ID
+        sync: false
+      - key: BC_CLIENT_ID
+        sync: false
+      - key: BC_CLIENT_SECRET
+        sync: false
+
+# Managed Storage
+databases:
+  - name: bc-agent-postgres
+    plan: standard
+    databaseName: bc_agent_db
+    user: bc_agent_admin
+    postgresMajorVersion: 16
+
+# Managed Redis (BullMQ queue broker & real-time caching)
+redis:
+  - name: bc-agent-redis
+    plan: standard
+    maxmemoryPolicy: noeviction
+    ipAllowList: [] # internal private network only

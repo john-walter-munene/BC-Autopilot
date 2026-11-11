@@ -356,3 +356,87 @@ ${exposedFieldsCode}
 
   return files;
 }
+
+export function generateDefaultAlFiles(summary?: string): {
+  manifest: {
+    id: string;
+    name: string;
+    version: string;
+    runtime: string;
+    target: 'Cloud' | 'OnPrem';
+    idRanges: Array<{ from: number; to: number }>;
+  };
+  files: Array<{
+    fileName: string;
+    objectType: 'tableextension' | 'pageextension' | 'page' | 'codeunit' | 'permissionset' | 'appjson';
+    objectId?: number;
+    codeContent: string;
+  }>;
+} {
+  const manifest = {
+    id: 'b182d83e-7a91-4e4c-b519-75a89f928e12',
+    name: 'BCCustomerScoring',
+    version: '1.0.0.0',
+    runtime: '13.0',
+    target: 'Cloud' as const,
+    idRanges: [{ from: 50100, to: 50149 }]
+  };
+
+  const tableExt = `tableextension 50100 "ALC Customer Extension" extends Customer
+{
+    fields
+    {
+        field(50100; "ALC Loyalty Tier"; Option)
+        {
+            Caption = 'Loyalty Tier';
+            DataClassification = CustomerContent;
+            OptionMembers = Bronze, Silver, Gold, VIP;
+        }
+        field(50101; "ALC Credit Score"; Decimal)
+        {
+            Caption = 'Credit Score';
+            DataClassification = CustomerContent;
+            MinValue = 0;
+            MaxValue = 1000;
+        }
+    }
+}`;
+
+  const pageExt = `pageextension 50100 "ALC Customer Card Ext" extends "Customer Card"
+{
+    layout
+    {
+        addlast(General)
+        {
+            field("ALC Loyalty Tier"; Rec."ALC Loyalty Tier")
+            {
+                ApplicationArea = All;
+                ToolTip = 'Specifies customer loyalty tier.';
+            }
+            field("ALC Credit Score"; Rec."ALC Credit Score")
+            {
+                ApplicationArea = All;
+                ToolTip = 'Specifies credit assessment score.';
+            }
+        }
+    }
+}`;
+
+  return {
+    manifest,
+    files: [
+      {
+        fileName: 'Customer.TableExt.al',
+        objectType: 'tableextension',
+        objectId: 50100,
+        codeContent: tableExt
+      },
+      {
+        fileName: 'CustomerCard.PageExt.al',
+        objectType: 'pageextension',
+        objectId: 50100,
+        codeContent: pageExt
+      }
+    ]
+  };
+}

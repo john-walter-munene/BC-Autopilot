@@ -1,0 +1,10 @@
+{
+  "name": "@alchemy365/worker",
+  "version": "1.0.0",
+  "description": "Background Queue Worker for autonomous doc sweeps, Playwright runs, and AL compilation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx ../../src/modules/jobs/worker.ts"
+  }
+}

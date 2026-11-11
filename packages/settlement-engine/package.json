@@ -1,0 +1,8 @@
+{
+  "name": "@alchemy365/settlement-engine",
+  "version": "1.0.0",
+  "description": "Cryptographic build verification, rule assertion settlement, and dispute engine",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts"
+}

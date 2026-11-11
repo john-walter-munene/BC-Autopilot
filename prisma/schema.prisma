@@ -1,0 +1,202 @@
+// Prisma Schema for Microsoft Dynamics 365 Business Central Autonomous Agent
+// Architecture mirrors Overlay (CognitronTechnologies / john-walter-munene) relational persistence
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum SessionStatus {
+  INITIALIZING
+  ANALYZING_DOCS
+  PARSING_REQUIREMENTS
+  GENERATING_AL
+  DEPLOYING_SANDBOX
+  RUNNING_BROWSER_TESTS
+  GENERATING_APIS
+  SETTLED
+  DISPUTED
+  FAILED
+}
+
+enum SettlementStatus {
+  PENDING
+  SETTLED
+  DISPUTED
+  FLAGGED
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  RETRYING
+}
+
+enum AlObjectType {
+  TABLE_EXTENSION
+  PAGE_EXTENSION
+  API_PAGE
+  CODEUNIT
+  PERMISSION_SET
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  name          String?
+  role          String         @default("RESEARCHER")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  sessions      AgentSession[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model AgentSession {
+  id                String                    @id @default(uuid())
+  userId            String?
+  user              User?                     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  title             String
+  businessGoal      String
+  status            SessionStatus             @default(INITIALIZING)
+  bcTenantId        String?
+  bcEnvironment     String                    @default("Sandbox")
+  bcCompanyId       String?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  
+  requirementSpec   RequirementSpec?
+  alExtensions      AlExtension[]
+  buildRecords      BuildRecord[]
+  settlement        SettlementVerification?
+  jobs              BackgroundJob[]
+  auditLogs         AuditLog[]
+
+  @@map("agent_sessions")
+}
+
+model RequirementSpec {
+  id              String       @id @default(uuid())
+  sessionId       String       @unique
+  session         AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  rawMarkdown     String
+  parsedEntities  Json         // Extracted tables, fields, actions, endpoints
+  acceptanceRules Json         // Array of verifiable criteria for settlement
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("requirement_specs")
+}
+
+model AlExtension {
+  id            String       @id @default(uuid())
+  sessionId     String
+  session       AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  objectType    AlObjectType
+  objectId      Int          // 50100..50149 per Business Central standard
+  objectName    String
+  targetObject  String       // e.g., "Customer", "Customer Card"
+  codeContent   String
+  syntaxValid   Boolean      @default(true)
+  lintErrors    Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([sessionId, objectId])
+  @@map("al_extensions")
+}
+
+model BuildRecord {
+  id              String       @id @default(uuid())
+  sessionId       String
+  session         AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  extensionName   String
+  version         String       @default("1.0.0.0")
+  appId           String       @default(uuid())
+  appJsonManifest Json
+  sha256Hash      String       // Cryptographic proof fingerprint
+  alFilesCount    Int
+  compiledAt      DateTime     @default(now())
+
+  settlements     SettlementVerification[]
+
+  @@index([sessionId, sha256Hash])
+  @@map("build_records")
+}
+
+model SettlementVerification {
+  id                  String           @id @default(uuid())
+  sessionId           String           @unique
+  session             AgentSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  buildRecordId       String
+  buildRecord         BuildRecord      @relation(fields: [buildRecordId], references: [id])
+  status              SettlementStatus @default(PENDING)
+  scorePercent        Float            @default(0.0)
+  totalCriteriaCount  Int
+  passedCriteriaCount Int
+  failedCriteriaCount Int
+  verificationReport  Json             // Individual story-level assertion results
+  disputeNotes        String?
+  settledAt           DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@index([status, scorePercent])
+  @@map("settlement_verifications")
+}
+
+model EpisodicRule {
+  id              String   @id @default(uuid())
+  category        String   // AL_SYNTAX, PLAYWRIGHT_SELECTOR, ODATA_PAGING, ENTRA_ID
+  sourceDocUrl    String
+  triggerCondition String
+  prescriptiveRule String
+  confidenceScore Float    @default(0.95)
+  enforcedCount   Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([category])
+  @@map("episodic_rules")
+}
+
+model BackgroundJob {
+  id           String       @id @default(uuid())
+  sessionId    String?
+  session      AgentSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  queueName    String       // e.g. "bc-playwright-tests", "bc-doc-sweeper"
+  jobType      String
+  payload      Json
+  status       JobStatus    @default(QUEUED)
+  result       Json?
+  errorMessage String?
+  attempts     Int          @default(0)
+  maxAttempts  Int          @default(3)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([queueName, status])
+  @@map("background_jobs")
+}
+
+model AuditLog {
+  id          String        @id @default(uuid())
+  sessionId   String?
+  session     AgentSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  userId      String?
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action      String        // e.g., "AL_PACKAGE_SEALED", "PLAYWRIGHT_SUITE_EXECUTED"
+  details     Json
+  ipAddress   String?
+  createdAt   DateTime      @default(now())
+
+  @@index([sessionId, action])
+  @@map("audit_logs")
+}

@@ -181,8 +181,60 @@ export interface SelfReflectionIteration {
   diagnosticsCount: number;
   criticism: string;
   reflectionThought: string;
-  docConsulted: string;
   ruleLearned?: LearnedRule;
   resolved: boolean;
 }
 
+export interface AlExtensionFile {
+  fileName: string;
+  objectType: 'tableextension' | 'pageextension' | 'page' | 'codeunit' | 'permissionset' | 'appjson';
+  objectId?: number;
+  codeContent: string;
+}
+
+export interface AppJsonManifest {
+  id: string;
+  name: string;
+  version: string;
+  runtime: string;
+  target: 'Cloud' | 'OnPrem';
+  idRanges: Array<{ from: number; to: number }>;
+}
+
+export interface ExtractedEntities {
+  targetTables: string[];
+  customFields: string[];
+  actions: string[];
+  apiExposures: string[];
+  pagesToExtend: string[];
+}
+
+export interface UserStoryItem {
+  id: string;
+  title: string;
+  description: string;
+  acceptanceCriteria: string[];
+  status: 'pending' | 'passed' | 'failed';
+}
+
+export interface PlaywrightTestCase {
+  id?: string;
+  name?: string;
+  title?: string;
+  action?: string;
+  status: 'passed' | 'failed' | 'pending' | 'running';
+  durationMs?: number;
+}
+
+export interface EndpointDefinition {
+  path: string;
+  method: string;
+  entity: string;
+  description: string;
+}
+
+export interface NextJsProxyFile {
+  filename: string;
+  path: string;
+  content: string;
+}

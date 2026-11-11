@@ -320,3 +320,44 @@ export default function BCCustomerLoyaltyPortal() {
     sampleRecord,
   };
 }
+
+export function generateEndpointDefinitions(customFields: string[] = []): Array<{
+  path: string;
+  method: string;
+  entity: string;
+  description: string;
+}> {
+  return [
+    {
+      path: '/api/v2.0/companies({companyId})/customerAssessments',
+      method: 'GET',
+      entity: 'customerAssessment',
+      description: 'Retrieves all customer records with extended assessment and scoring attributes.'
+    },
+    {
+      path: '/api/v2.0/companies({companyId})/customerAssessments({id})',
+      method: 'PATCH',
+      entity: 'customerAssessment',
+      description: 'Updates VIP tier, risk scores, or credit terms for a specific customer.'
+    }
+  ];
+}
+
+export function generateNextJsProxyFiles(): Array<{
+  filename: string;
+  path: string;
+  content: string;
+}> {
+  return [
+    {
+      filename: 'route.ts',
+      path: 'app/api/bc/customer-assessments/route.ts',
+      content: `import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(req: NextRequest) {
+  // Proxy to Business Central custom API Page
+  return NextResponse.json({ success: true, items: [] });
+}`
+    }
+  ];
+}
