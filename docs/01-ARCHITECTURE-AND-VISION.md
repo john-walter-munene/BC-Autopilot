@@ -115,3 +115,18 @@ The autonomous architecture is organized as a collaborative multi-agent swarm co
          ▼ (Endpoint Scaffolder)
 [app/api/bc/route.ts + hooks/useBCEntity.ts + React Client Component]
 ```
+
+---
+
+### 5. Architectural Alignment with Overlay (`john-walter-munene/overlay`)
+
+This project's architecture is directly influenced by and adapted from the **Overlay** platform (`https://github.com/john-walter-munene/overlay`). The core parallels include:
+
+| Overlay Architecture Pattern | Adaptation in ALchemy 365 BC Agent |
+| :--- | :--- |
+| **Verifiable Picks & Cryptographic Immutability** | Every generated Business Central extension package is sealed with a **deterministic SHA-256 fingerprint** linking the FRD spec, AL code AST, and Playwright execution log into a tamper-proof verification certificate. |
+| **Automated Settlement Engine** | Just as Overlay settles betting picks against real sporting outcomes, ALchemy 365 features an **Automated Settlement Engine** that reconciles FRD acceptance criteria against automated Playwright browser test results and AL compiler linter outputs. |
+| **Modular Domain Architecture** | Structured into clean, decoupled domain modules (`knowledge`, `requirements`, `al-compiler`, `browser-agent`, `api-gateway`, `settlement-analytics`) mirroring Overlay's NestJS/Next.js domain separation. |
+| **Asynchronous Job / Telemetry Bus** | Long-running tasks (browser automation runs, deep doc crawler sweeps, compiler builds) run as verifiable background jobs emitting structured telemetry and audit traces. |
+| **Enterprise Full-Stack Bridge** | Server-side token caching, proxy route handlers, and typed React custom hooks providing clean separation between backend infrastructure and user-facing clients. |
+

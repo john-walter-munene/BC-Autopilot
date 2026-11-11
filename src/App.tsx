@@ -15,6 +15,7 @@ import { AgentChatDrawer } from './components/AgentChatDrawer';
 import { SettingsModal } from './components/SettingsModal';
 import { ResearchTestbenchView } from './components/ResearchTestbenchView';
 import { ContinuousLearningView } from './components/ContinuousLearningView';
+import { SettlementAnalyticsView } from './components/SettlementAnalyticsView';
 
 import { 
   AgentLogEntry, 
@@ -438,6 +439,14 @@ export default function App() {
           <ContinuousLearningView
             learnedRules={learnedRules}
             onAddLearnedRule={handleAddLearnedRule}
+          />
+        )}
+
+        {activeTab === 'settlement' && (
+          <SettlementAnalyticsView
+            currentFrd={currentFrd}
+            alFiles={alFiles}
+            playwrightSuite={playwrightSuite}
           />
         )}
 

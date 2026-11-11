@@ -13,7 +13,8 @@ import {
   Play,
   RotateCw,
   ShieldCheck,
-  Brain
+  Brain,
+  Award
 } from 'lucide-react';
 import { AgentPhase, FunctionalRequirementDoc } from '../types/agent';
 import { SAMPLE_FRDS } from '../data/sampleFrds';
@@ -71,6 +72,7 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'playwright', label: 'Playwright Automation', icon: PlaySquare },
     { id: 'nextjs', label: 'React / Next.js Bridge', icon: Layers },
     { id: 'learning', label: 'Continuous Learning & Memory', icon: Brain },
+    { id: 'settlement', label: 'Verifiable Settlement', icon: Award },
     { id: 'research', label: 'Research Evaluation', icon: ShieldCheck },
   ];
 
