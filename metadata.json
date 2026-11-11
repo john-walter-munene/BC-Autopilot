@@ -1,0 +1,6 @@
+{
+  "name": "ALchemy 365 - Autonomous Dynamics 365 Business Central Engineering Agent",
+  "description": "Autonomous TypeScript agent that explores Microsoft Dynamics 365 Business Central docs, engineers AL language extensions from functional requirement documents, automates browser customizations with Playwright, and generates ready-to-consume React/Next.js API endpoints.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
