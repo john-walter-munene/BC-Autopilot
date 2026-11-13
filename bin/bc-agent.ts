@@ -1,176 +1,201 @@
 #!/usr/bin/env node
 /**
- * Alchemy365: Autonomous Microsoft Dynamics 365 Business Central CLI
- * Run locally by engineers in real-time to parse FRDs, generate AL code, execute Playwright tests, and settle builds.
- * Mirrors Overlay (CognitronTechnologies / john-walter-munene) CLI architecture.
+ * BC Agent CLI.
+ * Overlay counterpart: the command surface exposed by apps/api (scripts/ or bin/).
+ *
+ * Phase 1 commands write an AL project, compile it with the physical alc.exe,
+ * sync symbol packages, publish to a container, and provision a sandbox.
  */
 
-import fs from 'node:fs';
-import path from 'node:path';
-import { requirementsService } from '../src/modules/requirements/requirements.service.ts';
-import { alCompilerService } from '../src/modules/al-compiler/alCompiler.service.ts';
-import { browserAgentService } from '../src/modules/browser-agent/browserAgent.service.ts';
-import { computeBuildSettlement } from '../src/modules/settlements/settlementService.ts';
-import { repoImporterService } from '../src/modules/repo-import/repoImporter.service.ts';
-import { generateSha256Fingerprint } from '../src/common/crypto.ts';
+import fs from "node:fs";
+import path from "node:path";
+import {
+  AlProjectWriter,
+  AlcRunner,
+  SymbolCacheService,
+  PublishService,
+  ContainerSandboxService,
+  defaultOutputPath,
+  formatAlcDiagnostics,
+  resolveAlcPath,
+} from "@bc-agent/shared";
+import { alCompilerService } from "../apps/api/src/modules/al-compiler/al-compiler.service.ts";
 
 const args = process.argv.slice(2);
-const command = args[0] || 'help';
+const command = args[0] ?? "help";
 
-function printHelp() {
+function flag(name: string, fallback?: string): string | undefined {
+  const inlineValue = args.find(arg => arg.startsWith(`--${name}=`));
+  if (inlineValue !== undefined) return inlineValue.slice(name.length + 3) || fallback;
+
+  const index = args.indexOf(`--${name}`);
+  return index !== -1 && args[index + 1] ? args[index + 1] : fallback;
+}
+
+function printHelp(): void {
   console.log(`
-========================================================================
- Alchemy365 — Autonomous Business Central Agent Developer CLI
-========================================================================
+BC Agent - Autonomous Business Central CLI
 
-Usage:
-  npx tsx bin/bc-agent.ts <command> [options]
+Usage: node --experimental-strip-types bin/bc-agent.ts <command> [options]
 
 Commands:
-  parse         Parse a Functional Requirement Document (.md)
-                --frd <path>         Path to markdown FRD file
+  generate-al    Generate an AL project folder
+                 --out <dir>          Target project directory (default: ./al-src)
 
-  import-repo   Ingest an existing React / Next.js web application repo
-                --repo <url-or-path> GitHub URL or local repo directory
+  compile        Compile an AL project with alc.exe
+                 --project <dir>      AL project directory
+                 --symbols <dir>      .alpackages cache directory
+                 --out <file>         Output .app path
+                 --alc <path>         Path to alc.exe (or set ALC_PATH)
 
-  generate-al   Generate AL TableExtensions, PageExtensions & API Pages
-                --frd <path>         Path to FRD
-                --out <dir>          Target directory for AL files (default: ./al-src)
+  symbols        Sync the symbol package cache
+                 --symbols <dir>      .alpackages cache directory
+                 --source <dir>       Directory containing .app symbol packages
 
-  test-browser  Run Playwright test validation against BC Web Client
-                --url <url>          BC Sandbox Web Client URL
+  publish        Publish a compiled .app to a container
+                 --app <file>         Path to the .app package
+                 --container <name>   Container name
+                 --sync               Synchronise the schema
 
-  settle        Compute verifiable cryptographic build settlement
-                --session <id>       Session identifier
+  sandbox        Provision a Business Central container
+                 --container <name>   Container name
+                 --port <n>           Web client port (default: 8080)
 
-  help          Show this manual
-========================================================================
+  settle         Print the SHA-256 fingerprint of generated AL sources
+  doctor         Report toolchain availability (alc.exe, PowerShell)
+  help           Show this manual
 `);
 }
 
-async function run() {
+async function main(): Promise<void> {
   switch (command) {
-    case 'parse': {
-      const frdIndex = args.indexOf('--frd');
-      const frdPath = frdIndex !== -1 ? args[frdIndex + 1] : null;
-      let frdText = '';
-
-      if (frdPath && fs.existsSync(frdPath)) {
-        frdText = fs.readFileSync(frdPath, 'utf-8');
-      } else {
-        frdText = `# Customer VIP & Risk Scoring
-Extend Customer table with VIP Tier (Option: Standard, Silver, Gold, Platinum) and Credit Assessment Score (Decimal).
-Expose Customer Card General FastTab and create custom REST API page.`;
-        console.log('[CLI] No --frd file provided. Using default sample specification.');
-      }
-
-      console.log('[CLI] Parsing Functional Requirement Document...');
-      const result = requirementsService.parseFrdLocally({ frdText });
-      console.log('\n[Extracted Entities]:', JSON.stringify(result.entities, null, 2));
-      console.log('\n[Extracted Acceptance Stories]:', result.userStories.map(s => `\n- [${s.id}] ${s.title}`).join(''));
+    case "generate-al": {
+      const outDir = flag("out", "./al-src")!;
+      const suite = alCompilerService.generateAlSuite("Customer assessment scoring");
+      const result = new AlProjectWriter().writeProject({
+        manifest: suite.manifest,
+        files: suite.files,
+        outDir,
+      });
+      console.log(`[generate-al] Project written to ${result.projectPath}`);
+      for (const file of result.writtenFiles) console.log(`  - ${file}`);
       break;
     }
 
-    case 'import-repo': {
-      const repoIndex = args.indexOf('--repo');
-      const repo = repoIndex !== -1 ? args[repoIndex + 1] : 'https://github.com/my-org/my-ecommerce-web';
-      
-      console.log(`[CLI] Scanning existing online service repo: ${repo}...`);
-      const analysis = await repoImporterService.analyzeRepository(repo);
+    case "compile": {
+      const project = flag("project", "./al-src")!;
+      const symbols = flag("symbols", path.join(project, ".alpackages"))!;
+      const output = flag("out");
+      const alc = flag("alc");
 
-      console.log(`\n[Framework Detected]: ${analysis.frameworkDetected}`);
-      console.log(`[Discovered Web Entities]: ${analysis.entitiesDiscovered.length}`);
-      for (const ent of analysis.entitiesDiscovered) {
-        console.log(`  • ${ent.name} (${ent.sourceType}) -> Maps to BC: ${ent.suggestedBcMapping.bcTargetTable} (TableExt: ${ent.suggestedBcMapping.isTableExtension})`);
+      const manifestPath = path.join(project, "app.json");
+      if (!fs.existsSync(manifestPath)) {
+        console.error(`[compile] app.json not found in ${project}`);
+        process.exitCode = 1;
+        return;
       }
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 
-      console.log(`\n[Discovered API Routes]: ${analysis.routesDiscovered.length}`);
-      for (const r of analysis.routesDiscovered) {
-        console.log(`  • [${r.methods.join('/')}] ${r.routePath}`);
+      const result = await new AlcRunner().run({
+        projectPath: project,
+        packageCachePath: symbols,
+        outputPath: output ?? defaultOutputPath(project, "alc", manifest.name, manifest.version),
+        alcPath: alc,
+      });
+
+      if (result.parsed.diagnostics.length > 0) {
+        console.log(formatAlcDiagnostics(result.parsed.diagnostics));
       }
-
-      console.log('\n[Synthesized Business Central AL Architecture]:');
-      for (const file of analysis.synthesizedAlPlan.estimatedAlFiles) {
-        console.log(`  ✓ ${file}`);
-      }
-
-      console.log('\n[Drop-In Replacement Client SDK Ready]: @/lib/bc-client.ts');
+      console.log(`[compile] ${result.success ? "SUCCESS" : "FAILED"} in ${result.durationMs}ms`);
+      if (result.packageExists) console.log(`[compile] Package: ${result.outputPath} (${result.packageSizeBytes} bytes)`);
+      if (!result.success) process.exitCode = 1;
       break;
     }
 
-    case 'generate-al': {
-      const outIndex = args.indexOf('--out');
-      const outDir = outIndex !== -1 ? args[outIndex + 1] : './al-src';
-      
-      console.log(`[CLI] Generating AL extension package targeted for Cloud (runtime 13.0)...`);
-      const suite = alCompilerService.generateAlSuite('Custom customer assessment scoring');
+    case "symbols": {
+      const symbols = flag("symbols", "./.alpackages")!;
+      const sourceDir = flag("source");
+      const cache = new SymbolCacheService();
+      if (sourceDir) {
+        if (!fs.existsSync(sourceDir) || !fs.statSync(sourceDir).isDirectory()) {
+          console.error(`[symbols] Source directory not found: ${sourceDir}`);
+          process.exitCode = 1;
+          return;
+        }
 
-      if (!fs.existsSync(outDir)) {
-        fs.mkdirSync(outDir, { recursive: true });
+        const sources = fs.readdirSync(sourceDir, { withFileTypes: true })
+          .filter(entry => entry.isFile() && entry.name.toLowerCase().endsWith(".app"))
+          .map(entry => ({
+            fileName: entry.name,
+            content: fs.readFileSync(path.join(sourceDir, entry.name)),
+          }));
+
+        if (sources.length === 0) {
+          console.error(`[symbols] No .app symbol packages found in ${sourceDir}`);
+          process.exitCode = 1;
+          return;
+        }
+
+        const result = cache.sync({ cachePath: symbols }, sources);
+        console.log(`[symbols] Synced ${sources.length} package(s) into ${result.cachePath}`);
+        console.log(`[symbols] Added: ${result.added.length}, updated: ${result.updated.length}, unchanged: ${result.unchanged.length}`);
+        break;
       }
 
-      // Write app.json
-      fs.writeFileSync(path.join(outDir, 'app.json'), JSON.stringify(suite.manifest, null, 2));
-      console.log(`[Generated] ${path.join(outDir, 'app.json')}`);
-
-      // Write AL files
-      for (const file of suite.files) {
-        const filePath = path.join(outDir, file.fileName);
-        fs.writeFileSync(filePath, file.codeContent);
-        console.log(`[Generated] ${filePath} (${file.objectType} ${file.objectId || ''})`);
-      }
-
-      const compiled = alCompilerService.compileAndSeal(suite);
-      console.log('\n[AL Verification Status]:', compiled.success ? 'PASSED (0 syntax errors)' : 'FAILED');
-      console.log('[Cryptographic Fingerprint]:', compiled.sha256Hash);
-      break;
-    }
-
-    case 'test-browser': {
-      const urlIndex = args.indexOf('--url');
-      const url = urlIndex !== -1 ? args[urlIndex + 1] : 'https://businesscentral.dynamics.com/sandbox';
-
-      console.log(`[CLI] Initializing Playwright browser automation against: ${url}`);
-      const suite = browserAgentService.generateSuite(['VIP Tier', 'Credit Score'], 'Customer Card');
-      console.log(`[Playwright] Generated test suite with ${suite.steps.length} assertion steps.`);
-
-      const executed = await browserAgentService.executeSuite(suite);
-      console.log(`[Playwright] Test execution completed with status: ${executed.lastRunStatus.toUpperCase()}`);
-      for (const step of executed.steps) {
-        console.log(`  ✓ Step ${step.stepNumber}: ${step.title} (${step.durationMs}ms)`);
+      const packages = cache.listPackages(symbols);
+      console.log(`[symbols] ${packages.length} package(s) in ${path.resolve(symbols)}`);
+      for (const pkg of packages) {
+        console.log(`  - ${pkg.fileName} (${pkg.sizeBytes} bytes, ${pkg.sha256.slice(0, 12)})`);
       }
       break;
     }
 
-    case 'settle': {
-      console.log('[CLI] Computing Verifiable Build Settlement Certificate...');
-      const alSuite = alCompilerService.generateAlSuite('Customer Scoring');
-      const compiled = alCompilerService.compileAndSeal(alSuite);
+    case "publish": {
+      const app = flag("app");
+      if (!app) {
+        console.error("[publish] --app is required");
+        process.exitCode = 1;
+        return;
+      }
+      const result = await new PublishService().publish({
+        appPath: app,
+        containerName: flag("container"),
+        sync: args.includes("--sync"),
+      });
+      console.log(`[publish] ${result.success ? "SUCCESS" : "FAILED"} in ${result.durationMs}ms`);
+      if (result.stderr) console.error(result.stderr);
+      if (!result.success) process.exitCode = 1;
+      break;
+    }
 
-      const rules = [
-        { id: 'R1', storyTitle: 'AL Extensions within 50100..50149', passCriteria: 'Valid IDs', status: 'passed' as const },
-        { id: 'R2', storyTitle: 'Playwright Browser Verification', passCriteria: 'UI Assertions pass', status: 'passed' as const },
-        { id: 'R3', storyTitle: 'API Gateway Next.js Bridge Ready', passCriteria: 'Endpoints valid', status: 'passed' as const }
-      ];
+    case "sandbox": {
+      const containerName = flag("container", "bcserver")!;
+      const port = Number(flag("port", "8080"));
+      const result = await new ContainerSandboxService().provision({
+        containerName,
+        webClientPort: port,
+        acceptEula: true,
+      });
+      console.log(`[sandbox] ${result.success ? "SUCCESS" : "FAILED"} - ${result.webClientUrl}`);
+      if (result.stderr) console.error(result.stderr);
+      if (!result.success) process.exitCode = 1;
+      break;
+    }
 
-      const settlement = computeBuildSettlement(
-        {
-          sessionId: 'cli-session-' + Date.now(),
-          extensionName: alSuite.manifest.name,
-          version: alSuite.manifest.version,
-          sha256Hash: compiled.sha256Hash,
-          manifest: alSuite.manifest,
-          alFiles: alSuite.files
-        },
-        rules,
-        { passed: true, errors: [] }
-      );
+    case "settle": {
+      const suite = alCompilerService.generateAlSuite("Customer assessment scoring");
+      const result = alCompilerService.compileAndSeal(suite);
+      console.log(`[settle] ${result.success ? "SETTLED" : "DISPUTED"}`);
+      console.log(`[settle] SHA-256: ${result.sha256Hash}`);
+      if (!result.success) process.exitCode = 1;
+      break;
+    }
 
-      console.log('\n========================================================================');
-      console.log(` SETTLEMENT STATUS: ${settlement.status} (Score: ${settlement.scorePercent}%)`);
-      console.log(` SHA-256 PROOF:    ${settlement.verifiableCertificate.sha256Fingerprint}`);
-      console.log(` VERIFIED AT:      ${settlement.verifiableCertificate.verifiedAt}`);
-      console.log('========================================================================\n');
+    case "doctor": {
+      const alc = resolveAlcPath(flag("alc"));
+      console.log(`alc.exe:     ${alc ?? "NOT FOUND (set ALC_PATH or --alc)"}`);
+      console.log(`PowerShell:  ${process.platform === "win32" ? "expected at pwsh.exe/powershell.exe" : "pwsh"}`);
+      console.log(`Node:        ${process.version}`);
       break;
     }
 
@@ -180,7 +205,7 @@ Expose Customer Card General FastTab and create custom REST API page.`;
   }
 }
 
-run().catch(err => {
-  console.error('[CLI Error]:', err);
+main().catch(error => {
+  console.error("[CLI Error]:", error);
   process.exit(1);
 });

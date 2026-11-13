@@ -1,90 +1,34 @@
-# Production Deployment Runbook (docs/DEPLOY.md)
-*Mirrors Overlay (CognitronTechnologies / john-walter-munene) Production Runbook*
+# Deployment
 
-## 1. Prerequisites & Environment Variables
+## API
 
-Ensure the following variables are defined in your deployment environment (Render, Docker, or Kubernetes):
+`Dockerfile` and `render.yaml` deploy the API workspace. The API listens on `PORT` (3000 by default) and exposes `GET /api/health`.
 
-```bash
-# Server & Runtime
-NODE_ENV=production
-PORT=3000
-APP_URL=https://bc-agent-api.onrender.com
+The only optional model integration environment variable currently used by the API is `GEMINI_API_KEY`. Business Central credentials are needed only when enabling a separately implemented authenticated integration; PostgreSQL and Redis are not required by the current in-memory API.
 
-# PostgreSQL & Redis
-DATABASE_URL=postgresql://bc_agent_admin:SecretPass@postgres:5432/bc_agent_db?schema=public
-REDIS_URL=redis://bc-agent-redis:6379
+### Docker
 
-# Microsoft Entra ID (Business Central Cloud OAuth2)
-BC_TENANT_ID=your-azure-tenant-id
-BC_CLIENT_ID=your-entra-app-client-id
-BC_CLIENT_SECRET=your-entra-client-secret
-BC_ENVIRONMENT=Sandbox
-BC_COMPANY_ID=00000000-0000-0000-0000-000000000000
-
-# Gemini AI Engine
-GEMINI_API_KEY=your-gemini-api-key
+```powershell
+docker build -t bc-agent .
+docker run --rm -p 3000:3000 -e GEMINI_API_KEY=your-key bc-agent
 ```
 
----
+The image starts `@bc-agent/api`. It does not contain `alc.exe`, PowerShell, BcContainerHelper, or a Docker host for nested container provisioning; run `compile`, `publish` and `sandbox` from a suitable developer environment.
 
-## 2. Local Docker Compose Launch
+### Render
 
-To spin up all services locally:
+Create a Render Blueprint from `render.yaml`. It provisions only the Node web service. Configure `GEMINI_API_KEY` if live model responses are required.
 
-```bash
-# 1. Clone repository
-git clone https://github.com/your-org/alchemy365-agent.git
-cd alchemy365-agent
+## Web console
 
-# 2. Start PostgreSQL, Redis, API Web, and BullMQ Worker
-docker-compose up -d --build
+The React/Vite web app is built independently with `npm run build -w @bc-agent/web`. Host the generated `apps/web/dist` static bundle and configure the host or reverse proxy to route `/api` requests to the API service.
 
-# 3. Apply Prisma migrations
-npx prisma migrate deploy
+For local development, `npm run dev:api` starts the API and `npm run dev` starts Vite. The Vite `/api` proxy defaults to `http://127.0.0.1:3000`; set `API_PROXY_TARGET` to use a different local API URL.
 
-# 4. Verify API health
-curl -s http://localhost:3000/api/health | jq .
+## Smoke check
+
+```powershell
+curl http://localhost:3000/api/health
 ```
 
----
-
-## 3. Render Blueprint Deployment
-
-1. Connect your GitHub repository to Render.
-2. In the Render Dashboard, click **New +** -> **Blueprint**.
-3. Select this repository; Render automatically parses `render.yaml`.
-4. Render provisions:
-   - `bc-agent-api` (Web Service on Node 22)
-   - `bc-agent-worker` (Background Worker running BullMQ queue)
-   - `bc-agent-postgres` (PostgreSQL 16 managed database)
-   - `bc-agent-redis` (Redis managed cache and job queue broker)
-5. Fill in the sensitive environment variables (`GEMINI_API_KEY`, `BC_CLIENT_ID`, `BC_CLIENT_SECRET`).
-6. Click **Apply**.
-
----
-
-## 4. Database Schema Migration
-
-Run the Prisma migration pipeline before routing traffic:
-
-```bash
-# Run Prisma push or deploy in production
-npx prisma db push
-```
-
----
-
-## 5. Post-Deployment Smoke Test
-
-Execute the verification check against the deployed instance:
-
-```bash
-# 1. Test Entra ID OAuth2 token handshake
-curl -X POST https://bc-agent-api.onrender.com/api/agent/explore-docs \
-  -H "Content-Type: application/json" \
-  -d '{"query":"tableextension AL syntax"}'
-
-# 2. Test Settlement Engine
-curl -s https://bc-agent-api.onrender.com/api/health
-```
+The optional live Business Central Playwright suite additionally requires an authenticated environment configured through `BC_WEB_URL`. See [the browser automation guide](./04-PLAYWRIGHT-BROWSER-AUTOMATION.md).

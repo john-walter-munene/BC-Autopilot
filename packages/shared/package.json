@@ -1,8 +1,22 @@
 {
-  "name": "@alchemy365/shared",
+  "name": "@bc-agent/shared",
   "version": "1.0.0",
-  "description": "Shared domain types, constants, error classes, and cryptographic utilities",
   "private": true,
+  "description": "Shared AL compiler, symbol cache, publish bridge and pipeline primitives",
   "type": "module",
-  "main": "./index.ts"
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test \"src/*.test.ts\""
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
 }

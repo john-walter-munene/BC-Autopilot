@@ -1,4 +1,4 @@
-name: CI Quality Gate
+name: CI
 
 on:
   push:
@@ -7,28 +7,25 @@ on:
     branches: [main, master, develop]
 
 jobs:
-  lint-and-build:
-    name: Typecheck, Lint & Build
+  verify:
+    name: Lint, test, build and container
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 22
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: npm
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: npm ci
 
-      - name: Run TypeScript Typecheck & Lint
-        run: npm run lint
+      - name: Verify workspaces
+        run: npm run verify
 
-      - name: Run Production Bundle Build
-        run: npm run build
-
-      - name: Verify Dockerfile Build
-        run: docker build -t alchemy365-agent:ci .
+      - name: Build API container
+        run: docker build -t bc-agent:ci .
