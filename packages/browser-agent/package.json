@@ -1,8 +1,0 @@
-{
-  "name": "@alchemy365/browser-agent",
-  "version": "1.0.0",
-  "description": "Playwright automated browser driver and DOM inspector for Dynamics 365 Business Central",
-  "private": true,
-  "type": "module",
-  "main": "./index.ts"
-}

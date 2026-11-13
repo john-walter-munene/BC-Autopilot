@@ -1,4 +1,4 @@
-# @alchemy365/web
+# @bc-agent/web
 
 Frontend web console for the Autonomous Dynamics 365 Business Central Engineering Agent.
 
@@ -16,3 +16,5 @@ Built with **React 19**, **Tailwind CSS**, and **Motion**, this application prov
 ```bash
 npm run dev
 ```
+
+Run the API separately with `npm run dev:api` in the repository root. Vite proxies `/api` requests to `http://127.0.0.1:3000` by default; set `API_PROXY_TARGET` to override the target.

@@ -1,8 +1,0 @@
-{
-  "name": "@alchemy365/al-compiler",
-  "version": "1.0.0",
-  "description": "AL language compiler, AST linter, and Cloud extension packager",
-  "private": true,
-  "type": "module",
-  "main": "./index.ts"
-}
