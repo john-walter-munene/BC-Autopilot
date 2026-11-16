@@ -15,6 +15,7 @@ import {
   SymbolCacheService,
   PublishService,
   ContainerSandboxService,
+  DEFAULT_STORAGE_STATE_PATH,
   defaultOutputPath,
   formatAlcDiagnostics,
   resolveAlcPath,
@@ -60,6 +61,15 @@ Commands:
   sandbox        Provision a Business Central container
                  --container <name>   Container name
                  --port <n>           Web client port (default: 8080)
+
+  browse         Run the Playwright suite against a managed BC session
+                 --config <dir>       Directory with the Playwright config (default: tests/playwright)
+                 --auth-state <file>  Captured storage state (default: auth/bc-storage-state.json)
+                 --spec <file>        Single spec to run
+                 --grep <text>        Only run matching tests
+                 --out <dir>          Output/evidence directory (default: test-results)
+                 --url <url>          Override the BC web client URL
+                 --max-runs <n>       Keep at most n evidence runs
 
   settle         Print the SHA-256 fingerprint of generated AL sources
   doctor         Report toolchain availability (alc.exe, PowerShell)
@@ -179,6 +189,32 @@ async function main(): Promise<void> {
       console.log(`[sandbox] ${result.success ? "SUCCESS" : "FAILED"} - ${result.webClientUrl}`);
       if (result.stderr) console.error(result.stderr);
       if (!result.success) process.exitCode = 1;
+      break;
+    }
+
+    case "browse": {
+      const { createBrowserAgentService } = await import(
+        "../apps/api/src/modules/browser-agent/browser-agent.service.ts"
+      );
+      const maxRunsFlag = flag("max-runs");
+      const maxRuns = maxRunsFlag === undefined ? undefined : Number(maxRunsFlag);
+
+      const outcome = await createBrowserAgentService().executeSuite({
+        testDir: flag("config", "tests/playwright")!,
+        authStatePath: flag("auth-state", DEFAULT_STORAGE_STATE_PATH),
+        spec: flag("spec"),
+        grep: flag("grep"),
+        outputDir: flag("out"),
+        baseUrl: flag("url"),
+        retention: maxRuns === undefined || Number.isNaN(maxRuns) ? undefined : { maxRuns },
+      });
+
+      console.log(`[browse] ${outcome.summary}`);
+      if (outcome.prune?.pruned.length) {
+        console.log(`[browse] Pruned ${outcome.prune.pruned.length} older run(s)`);
+      }
+      if (outcome.failureReason) console.error(`[browse] ${outcome.failureReason}`);
+      if (!outcome.success) process.exitCode = 1;
       break;
     }
 

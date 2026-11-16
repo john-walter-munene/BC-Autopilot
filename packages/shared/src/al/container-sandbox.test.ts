@@ -12,7 +12,7 @@ import {
   DEFAULT_ODATA_PORT,
   DEFAULT_WEB_CLIENT_PORT,
 } from "./container-sandbox.ts";
-import { createFakeClock, createFakeExecFile } from "./test-helpers.ts";
+import { createFakeClock, createFakeExecFile } from "../testing/test-helpers.ts";
 
 describe("deriveContainerEndpoints", () => {
   it("derives web client, OData and dev service URLs from default ports", () => {

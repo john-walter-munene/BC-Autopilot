@@ -3,7 +3,7 @@
  * Phase 1: physical compiler integration, symbol package caching, and publish bridge
  */
 
-import type { AppJsonManifest, AlExtensionFile } from './types.ts';
+import type { AppJsonManifest, AlExtensionFile } from '../types.ts';
 
 export type AlcDiagnosticSeverity = 'error' | 'warning' | 'info';
 
@@ -261,4 +261,215 @@ export interface Phase1PipelineResult {
   success: boolean;
   /** Deterministic SHA-256 fingerprint of the compiled package (or project payload) */
   fingerprint: string;
+}
+
+/**
+ * Phase 2: live browser automation types
+ * Playwright execution, managed Entra ID storage state, and evidence retention.
+ */
+
+/** Where a Playwright storage state file is read from / written to. */
+export interface StorageStateDeps {
+  readFile?: (filePath: string) => string;
+  writeFile?: (filePath: string, data: string) => void;
+  mkdir?: (dir: string) => void;
+  fileExists?: (filePath: string) => boolean;
+  now?: () => Date;
+  /** Resolve a relative state path the way Playwright does (against the project root) */
+  cwd?: string;
+}
+
+/** Redacted report of a storage state closure — cookie values are never retained. */
+export interface StorageStateInspection {
+  /** True when a state file exists on disk */
+  present: boolean;
+  /** True when the state exists, parses, and holds an unexpired BC session cookie */
+  valid: boolean;
+  /** Absolute path that was inspected */
+  path: string;
+  cookieCount: number;
+  originCount: number;
+  /** True when a Business Central session cookie is present */
+  sessionCookiePresent: boolean;
+  /** Earliest expiry among the BC session cookies (ISO 8601). Absent for session-only cookies. */
+  expiresAt?: string;
+  /** Why the state is unusable. Empty when `valid` is true. */
+  reasons: string[];
+}
+
+export interface StorageStateResolveOptions {
+  /** Directory that relative state paths resolve against */
+  cwd?: string;
+}
+
+export type EvidenceKind = 'trace' | 'video' | 'screenshot';
+
+export interface EvidenceSource {
+  kind: EvidenceKind;
+  /** Path produced by the Playwright run */
+  sourcePath: string;
+}
+
+export interface RetainedArtefact {
+  kind: EvidenceKind;
+  /** Path inside the evidence run directory */
+  path: string;
+  /** File name only — safe to log and store in a manifest */
+  fileName: string;
+  sizeBytes: number;
+}
+
+export interface DroppedArtefact {
+  kind: EvidenceKind;
+  fileName: string;
+  reason: string;
+}
+
+/** One retained run, derived from the on-disk manifest. */
+export interface RetainedRun {
+  runId: string;
+  capturedAt: number;
+  status: 'passed' | 'failed';
+  path: string;
+  totalBytes: number;
+}
+
+export interface RunEvidenceResult {
+  runId: string;
+  status: 'passed' | 'failed';
+  durationMs: number;
+  capturedAt: string;
+  directory: string;
+  retained: RetainedArtefact[];
+  removed: DroppedArtefact[];
+  totalBytes: number;
+}
+
+export interface RetainedArtefactManifestEntry {
+  kind: EvidenceKind;
+  fileName: string;
+  sizeBytes: number;
+}
+
+/** What is written to `evidence.json` — relative names only, never absolute paths or secrets. */
+export interface EvidenceManifest {
+  runId: string;
+  status: 'passed' | 'failed';
+  capturedAt: string;
+  durationMs: number;
+  retained: RetainedArtefactManifestEntry[];
+  removed: Array<{ kind: EvidenceKind; fileName: string; reason: string }>;
+}
+
+export interface EvidenceDeps {
+  readDir?: (dir: string) => string[];
+  readFile?: (filePath: string) => Buffer | string;
+  writeFile?: (filePath: string, data: Buffer | string) => void;
+  mkdir?: (dir: string) => void;
+  remove?: (target: string) => void;
+  exists?: (target: string) => boolean;
+  now?: () => Date;
+}
+
+export interface CollectEvidenceRequest {
+  /** Root directory that holds one folder per run */
+  evidenceDir: string;
+  runId: string;
+  status: 'passed' | 'failed';
+  durationMs: number;
+  sources: EvidenceSource[];
+}
+
+export interface RetentionPolicy {
+  /** Keep at most this many runs (newest first) */
+  maxRuns?: number;
+  /** Drop runs captured more than this many days ago */
+  maxAgeDays?: number;
+}
+
+export interface PruneEvidenceResult {
+  kept: string[];
+  pruned: string[];
+  totalBytes: number;
+}
+
+export interface PlaywrightTestEntry {
+  title: string;
+  /** Full path of describe blocks, ending with the test title */
+  titlePath: string[];
+  status: 'passed' | 'failed' | 'skipped' | 'unknown';
+  /** Number of attempts (results) Playwright recorded */
+  attempts: number;
+  /** Duration of the final attempt in ms */
+  durationMs: number;
+  file?: string;
+  /** Failure message of the final attempt, when the test failed */
+  error?: string;
+}
+
+export interface PlaywrightReportSummary {
+  tests: PlaywrightTestEntry[];
+  counts: { passed: number; failed: number; skipped: number; flaky: number };
+  /** True when no test failed unexpectedly and there were no global errors */
+  success: boolean;
+  /** Wall-clock duration from `stats.duration` */
+  durationMs: number;
+  errors: string[];
+}
+
+export interface PlaywrightReportOptions {
+  /** Treat a flaky pass as acceptable (default false) */
+  allowFlaky?: boolean;
+  /** An empty report proves nothing; treat it as a failure (default true) */
+  allowEmpty?: boolean;
+}
+
+export interface PlaywrightRunOptions {
+  /** Directory containing the Playwright config (passed to --config) */
+  testDir: string;
+  /** Directory that receives the JSON report, traces and videos (default: test-results) */
+  outputDir?: string;
+  /** Base URL exported as BC_WEB_URL */
+  baseUrl?: string;
+  /** Managed storage state exported to Playwright */
+  storageStatePath?: string;
+  /** Extra environment variables for the child process */
+  env?: Record<string, string>;
+  /** Single spec file to run */
+  spec?: string;
+  grep?: string;
+  workers?: number;
+  retries?: number;
+  timeoutMs?: number;
+  cwd?: string;
+  /** Directory names under the output folder that may hold artefacts */
+  artefactDirs?: string[];
+}
+
+export interface PlaywrightRunDeps {
+  execFile?: AlcRunnerDeps['execFile'];
+  fileExists?: (filePath: string) => boolean;
+  /** Reads the JSON reporter output as text */
+  readFile?: (filePath: string) => string;
+  now?: () => number;
+  /** Resolve the Playwright CLI (npx playwright) — null when it is not installed */
+  resolvePlaywrightPath?: () => string | null;
+  /** Absolute project root used to read artefacts back */
+  rootDir?: string;
+}
+
+export interface PlaywrightRunResult {
+  success: boolean;
+  exitCode: number | null;
+  command: string;
+  args: string[];
+  stdout: string;
+  stderr: string;
+  durationMs: number;
+  timedOut: boolean;
+  report: PlaywrightReportSummary | null;
+  /** Absolute path of the JSON report Playwright was asked to write */
+  reportPath: string;
+  /** Single-line, log-safe summary */
+  summary: string;
 }

@@ -18,6 +18,8 @@ test.describe('D365 Business Central Web Client UI Customization & Field Validat
   test.beforeEach(async ({ page }) => {
     // Set standard Business Central desktop viewport
     await page.setViewportSize({ width: 1440, height: 900 });
+    // Accept any modal confirmation so a dialog can never block the run
+    page.on('dialog', dialog => dialog.accept());
   });
 
   test('Autonomous Verification: Designer Mode, Page Inspector & Extension Fields on ${targetPage}', async ({ page }) => {
@@ -44,8 +46,8 @@ test.describe('D365 Business Central Web Client UI Customization & Field Validat
       await tellMeInput.fill('${targetPage}');
       await page.keyboard.press('Enter');
       
-      // Wait for Page navigation
-      await page.waitForTimeout(1500);
+      // Wait for the page to actually load rather than sleeping (docs/04: no fixed waits)
+      await page.waitForSelector('.ms-nav-content, .ms-nav-edit-control', { state: 'visible', timeout: 15000 });
     });
 
     // Step 4: Open Target Record Card
@@ -98,6 +100,7 @@ test.describe('D365 Business Central Web Client UI Customization & Field Validat
 });
 `;
 
+  // Steps describe intent. Durations are only known after a real run, so they stay at 0.
   const steps: PlaywrightStepResult[] = [
     {
       stepNumber: 1,
@@ -106,8 +109,7 @@ test.describe('D365 Business Central Web Client UI Customization & Field Validat
       selector: 'page.goto(BC_BASE_URL)',
       expectedOutcome: 'HTTP 200 OK, Business Central Web Client shell initializes',
       status: 'pending',
-      durationMs: 420,
-      consoleTrace: '[Playwright] Browser chromium launched in headless mode. Navigating to https://businesscentral.dynamics.com/sandbox'
+      durationMs: 0,
     },
     {
       stepNumber: 2,
@@ -116,8 +118,7 @@ test.describe('D365 Business Central Web Client UI Customization & Field Validat
       selector: '.ms-nav-ready, .ms-nav-action-bar',
       expectedOutcome: 'BC Client hydrated, App Bar and navigation ribbon accessible',
       status: 'pending',
-      durationMs: 650,
-      consoleTrace: '[Playwright] DOM element ".ms-nav-ready" attached. User authenticated as Cloud Partner Admin.'
+      durationMs: 0,
     },
     {
       stepNumber: 3,
@@ -126,8 +127,7 @@ test.describe('D365 Business Central Web Client UI Customization & Field Validat
       selector: 'input[aria-label*="Tell me what you want to do"]',
       expectedOutcome: 'Quick Search modal opens and loads target page route',
       status: 'pending',
-      durationMs: 380,
-      consoleTrace: `[Playwright] Pressed key combo Alt+Q. Filled search query "${targetPage}". Triggered Enter navigation.`
+      durationMs: 0,
     },
     {
       stepNumber: 4,
@@ -136,8 +136,7 @@ test.describe('D365 Business Central Web Client UI Customization & Field Validat
       selector: 'table.ms-nav-grid tbody tr:first-child',
       expectedOutcome: 'Card view loads with FastTabs (General, Invoicing, Payments)',
       status: 'pending',
-      durationMs: 510,
-      consoleTrace: `[Playwright] Clicked record No. "10000" (Adatum Corporation). Opened Card View.`
+      durationMs: 0,
     },
     {
       stepNumber: 5,
@@ -146,8 +145,7 @@ test.describe('D365 Business Central Web Client UI Customization & Field Validat
       selector: '.ms-nav-designer-toolbar, [data-automation-id="designer-toolbar"]',
       expectedOutcome: 'Designer UI overlay rendered with drag-and-drop field palette',
       status: 'pending',
-      durationMs: 720,
-      consoleTrace: '[Playwright] In-Client Designer mode initialized. Extension symbol table mounted.'
+      durationMs: 0,
     },
     {
       stepNumber: 6,
@@ -156,8 +154,7 @@ test.describe('D365 Business Central Web Client UI Customization & Field Validat
       selector: '.ms-nav-page-inspector',
       expectedOutcome: 'Page Inspector drawer opens showing Table ID, Extension Name, and Field IDs',
       status: 'pending',
-      durationMs: 340,
-      consoleTrace: `[Playwright] Pressed Ctrl+Alt+F1. Page Inspector loaded: Table 18 Customer, Extension ID "ALC Customer Extension" (TableExt 50100).`
+      durationMs: 0,
     },
     {
       stepNumber: 7,
@@ -166,18 +163,16 @@ test.describe('D365 Business Central Web Client UI Customization & Field Validat
       selector: `[aria-label*="${firstField}"]`,
       expectedOutcome: 'Field control located in General FastTab, editable state verified',
       status: 'pending',
-      durationMs: 290,
-      consoleTrace: `[Playwright] Found selector [aria-label*="${firstField}"]. Computed visibility: true. Triggered OnValidate.`
+      durationMs: 0,
     },
     {
       stepNumber: 8,
       title: 'Capture Visual Audit Screenshot & Validate No Console Errors',
       action: 'assert_dom',
       selector: 'page.screenshot()',
-      expectedOutcome: 'Test passed 8/8 assertions with 0 AL runtime warnings',
+      expectedOutcome: 'Screenshot captured for the evidence bundle',
       status: 'pending',
-      durationMs: 210,
-      consoleTrace: '[Playwright] Screenshot captured. Customization validation 100% complete.'
+      durationMs: 0,
     }
   ];
 
@@ -187,11 +182,45 @@ test.describe('D365 Business Central Web Client UI Customization & Field Validat
     testCode,
     steps,
     lastRunStatus: 'idle',
-    totalDurationMs: 3520
+    totalDurationMs: 0
   };
 }
 
 export function generatePlaywrightTestSuite(customFields: string[] = [], targetPage = 'Customer Card'): PlaywrightSuite {
+  const fields = customFields.length > 0 ? customFields : ['ALC Custom Field'];
+  const fieldAssertions = fields
+    .map(field => `    await expect(page.locator('[aria-label*="${field}"], [data-field-name*="${field}"]')).toBeVisible();`)
+    .join('\n');
+
+  // A real, runnable spec: no sleeps, state-based waits, dialogs accepted up front.
+  const testCode = `/**
+ * @name Business Central extension field verification
+ * @generated by BC Autopilot
+ */
+
+import { test, expect } from '@playwright/test';
+
+const BC_BASE_URL = process.env.BC_WEB_URL ?? 'https://businesscentral.dynamics.com/sandbox';
+
+test('verifies custom fields on ${targetPage}', async ({ page }) => {
+  page.on('dialog', dialog => dialog.accept());
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  await page.goto(BC_BASE_URL, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.ms-nav-ready, .ms-nav-action-bar', { timeout: 45000 });
+
+  await page.keyboard.press('Alt+Q');
+  const tellMe = page.locator('input[aria-label*="Tell me what you want to do"]');
+  await tellMe.fill('${targetPage}');
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('.ms-nav-content', { state: 'visible', timeout: 15000 });
+
+${fieldAssertions}
+
+  await page.screenshot({ path: 'test-results/bc-extension-verified.png' });
+});
+`;
+
   const steps: PlaywrightStepResult[] = [
     {
       stepNumber: 1,
@@ -199,7 +228,7 @@ export function generatePlaywrightTestSuite(customFields: string[] = [], targetP
       action: 'navigate',
       expectedOutcome: 'Client shell and role center hydrate successfully',
       status: 'pending',
-      durationMs: 420
+      durationMs: 0
     },
     {
       stepNumber: 2,
@@ -207,24 +236,24 @@ export function generatePlaywrightTestSuite(customFields: string[] = [], targetP
       action: 'open_tell_me',
       expectedOutcome: `${targetPage} opens with all FastTabs expanded`,
       status: 'pending',
-      durationMs: 380
+      durationMs: 0
     },
     {
       stepNumber: 3,
       title: 'Verify Custom Extension Fields & Actions',
       action: 'assert_dom',
-      expectedOutcome: 'Fields and action triggers verified on page',
+      expectedOutcome: `Fields visible: ${fields.join(', ')}`,
       status: 'pending',
-      durationMs: 290
+      durationMs: 0
     }
   ];
 
   return {
     filename: 'tests/bc-customization.spec.ts',
     targetUrl: 'https://businesscentral.dynamics.com/sandbox',
-    testCode: '// Generated Playwright Test Suite',
+    testCode,
     steps,
     lastRunStatus: 'idle',
-    totalDurationMs: 1090
+    totalDurationMs: 0
   };
 }

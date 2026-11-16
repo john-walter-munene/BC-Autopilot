@@ -14,6 +14,10 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never", outputFolder: "../../test-results/html" }]],
   use: {
     baseURL: process.env.BC_WEB_URL ?? "https://businesscentral.dynamics.com",
+    // Managed Entra ID session captured by `npm run cli -- browse` / a login capture.
+    ...(process.env.PLAYWRIGHT_STORAGE_STATE || process.env.BC_STORAGE_STATE
+      ? { storageState: process.env.PLAYWRIGHT_STORAGE_STATE ?? process.env.BC_STORAGE_STATE! }
+      : {}),
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",

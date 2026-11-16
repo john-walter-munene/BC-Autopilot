@@ -17,9 +17,9 @@ function runCli(args: string[]): string {
 }
 
 describe("BC Agent CLI", () => {
-  it("shows the wired Phase 1 commands in help", () => {
+  it("shows the wired Phase 1 and Phase 2 commands in help", () => {
     const output = runCli(["help"]);
-    for (const command of ["compile", "symbols", "publish", "sandbox"]) {
+    for (const command of ["compile", "symbols", "publish", "sandbox", "browse"]) {
       assert.match(output, new RegExp(`^  ${command}\\s`, "m"));
     }
   });
@@ -58,6 +58,25 @@ describe("BC Agent CLI", () => {
 
       assert.equal(result.status, 1);
       assert.match(result.stderr, /No \.app symbol packages found/);
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("BC Agent CLI browse", () => {
+  it("fails clearly when the managed storage state is missing, and never claims a pass", () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "bc-agent-browse-"));
+    try {
+      const result = spawnSync(
+        process.execPath,
+        ["--experimental-strip-types", cliPath, "browse", `--auth-state=${path.join(tempDir, "state.json")}`, `--out=${tempDir}`],
+        { cwd: repositoryRoot, encoding: "utf8" }
+      );
+
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /Storage state is not usable|not found/i);
+      assert.match(result.stderr, /browse|auth-state/i, "the error explains how to fix it");
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }

@@ -28,9 +28,29 @@ This roadmap distinguishes implemented code paths from end-to-end validation. Wo
 
 ## Phase 2 — Live browser automation
 
-- [ ] Make authenticated Playwright execution a supported workflow with managed storage-state handling.
-- [ ] Capture and retain trace, screenshot and video evidence from sandbox runs.
+- [x] Make authenticated Playwright execution a supported workflow with managed storage-state handling.
+- [x] Capture and retain trace, screenshot and video evidence from sandbox runs.
 - [ ] Validate generated customizations against actual Business Central UI versions.
+
+The implemented surface (`packages/shared/src/browser`) is:
+
+- `storage-state.ts` — resolve, validate and capture a Playwright storage state. A state with no
+  Business Central session cookie, or an expired one, is refused with the reason; cookie values are
+  never returned by the inspection result.
+- `run-evidence.ts` — one folder per run under `<output>/evidence/<runId>`, with a redacted
+  `evidence.json` manifest and a retention policy (`maxRuns`, `maxAgeDays`). Screenshots are always
+  kept; trace and video only when the run failed.
+- `playwright-report.ts` — parses the JSON reporter into per-test results, honouring Playwright's own
+  rules (a retry-recovered test is still a failure unless `allowFlaky` is set).
+- `playwright-runner.ts` — runs `playwright test` through `execFile`, reads the report from stdout or
+  disk, and fails loudly when Playwright is missing, cannot start, or produces no report.
+- `playwright-evidence.ts` — the single entry point used by the CLI (`browse`) and the API
+  (`createBrowserAgentService`). It refuses to spawn without a usable session and records evidence
+  in the same call.
+
+The suite was verified against a real Playwright run (one passing and one failing spec) during
+implementation; that check is not part of CI because it needs a browser download. The remaining
+Phase 2 item requires a live Business Central tenant and stays open.
 
 ## Phase 3 — Production API integration
 
@@ -43,4 +63,4 @@ This roadmap distinguishes implemented code paths from end-to-end validation. Wo
 - [ ] Add production monitoring, release validation and AppSource packaging checks.
 - [ ] Document supported Business Central releases and compatibility guarantees.
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for current system boundaries and [06-IMPLEMENTATION-ROADMAP.md](./06-IMPLEMENTATION-ROADMAP.md) for the Phase 1 operator workflow.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for current system boundaries, [06-IMPLEMENTATION-ROADMAP.md](./06-IMPLEMENTATION-ROADMAP.md) for the Phase 1 operator workflow and [07-TESTING.md](./07-TESTING.md) for the test layout and conventions.
