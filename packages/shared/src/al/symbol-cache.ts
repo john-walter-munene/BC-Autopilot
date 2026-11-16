@@ -6,7 +6,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { generateSha256Fingerprint } from './crypto.ts';
+import { generateSha256Fingerprint } from '../crypto.ts';
 import type {
   SymbolCacheManifest,
   SymbolCacheOptions,

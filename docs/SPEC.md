@@ -23,6 +23,8 @@ BC Autopilot provides a developer console for Business Central customization wor
 - `alc.exe`, PowerShell, BcContainerHelper and a compatible container host are external prerequisites and are not installed by npm.
 - The API's job queue and state are in-memory. There is no active PostgreSQL/Redis persistence or separate process-safe worker.
 - Live browser tests are optional and require a configured, authenticated Business Central environment.
+- Browser execution reports only what Playwright reported. A run without a managed storage state is
+  refused before Playwright starts; there is no simulated or randomized pass path.
 
 ## Workspace requirements
 
@@ -41,6 +43,8 @@ BC Autopilot provides a developer console for Business Central customization wor
 - `symbols` lists the cache by default; `--source` copies `.app` files from a local source directory and updates the cache manifest.
 - `publish` invokes `Publish-BcContainerApp` and returns the command output and status.
 - `sandbox` invokes `New-BcContainer` and reports the Web Client, OData and developer-service URLs.
+- `browse` runs the Playwright suite against a managed Entra ID storage state, retains evidence for the
+  run and applies a retention policy. It exits non-zero for a failed or refused run.
 
 The commands report missing inputs and external tools as failures. They do not claim that a real container operation succeeded unless the underlying command exits successfully.
 

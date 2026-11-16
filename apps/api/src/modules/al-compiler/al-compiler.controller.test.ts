@@ -12,7 +12,7 @@ import { AlcRunner } from "@bc-agent/shared";
 import { PublishService } from "@bc-agent/shared";
 import { SymbolCacheService } from "@bc-agent/shared";
 import type { AppJsonManifest, AlExtensionFile } from "@bc-agent/shared";
-import { createFakeClock, createFakeExecFile } from "../../../../../packages/shared/src/test-helpers.ts";
+import { createFakeClock, createFakeExecFile } from "../../../../../packages/shared/src/testing/test-helpers.ts";
 
 const MANIFEST: AppJsonManifest = {
   id: "b182d83e-7a91-4e4c-b519-75a89f928e12",

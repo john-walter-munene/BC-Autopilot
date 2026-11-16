@@ -6,7 +6,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { AlcRunner, buildAlcArgs, defaultOutputPath } from "./alc-runner.ts";
-import { createFakeClock, createFakeExecFile } from "./test-helpers.ts";
+import { createFakeClock, createFakeExecFile } from "../testing/test-helpers.ts";
 
 const PROJECT = "C:\\proj\\al-src";
 const CACHE = "C:\\proj\\.alpackages";

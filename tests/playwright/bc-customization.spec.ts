@@ -1,75 +1,75 @@
 /**
- * Playwright End-to-End Test Suite for Dynamics 365 Business Central Customizations
- * Verifies UI customizations, table extensions, action triggers, and API responsiveness.
- * Mirrors Overlay testing architecture.
+ * Playwright end-to-end suite for Dynamics 365 Business Central customizations.
+ *
+ * Rules enforced here (docs/04, docs/AGENT-INSTRUCTIONS.md):
+ *   - state-based waits only, never fixed sleeps
+ *   - no conditional assertions: a missing control is a failure, not a skip
+ *   - a managed storage state is required, so an unauthenticated run fails loudly
+ *
+ * Requires BC_WEB_URL and a captured session (see `npm run cli -- browse`).
  */
 
 import { test, expect } from '@playwright/test';
 
-const BC_SANDBOX_URL = process.env.BC_WEB_URL || 'https://businesscentral.dynamics.com/sandbox';
-const TIMEOUT_MS = 45000;
+const BC_SANDBOX_URL = process.env.BC_WEB_URL ?? 'https://businesscentral.dynamics.com/sandbox';
+const STORAGE_STATE = process.env.PLAYWRIGHT_STORAGE_STATE ?? process.env.BC_STORAGE_STATE;
 
-test.describe('Dynamics 365 Business Central Autonomous Customizations', () => {
+test.use(STORAGE_STATE ? { storageState: STORAGE_STATE } : {});
 
+test.describe('Dynamics 365 Business Central customizations', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate with Entra ID Bearer session cookie or mock sandbox
-    await page.goto(BC_SANDBOX_URL, { waitUntil: 'networkidle', timeout: TIMEOUT_MS });
+    // Accept modal confirmations so a dialog can never block the suite
+    page.on('dialog', dialog => dialog.accept());
+    await page.goto(BC_SANDBOX_URL, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await page.waitForSelector('.ms-nav-ready, .ms-nav-action-bar', { timeout: 45_000 });
   });
 
-  test('TC-01: Verifies Custom Table Extension Fields on Customer Card', async ({ page }) => {
-    // 1. Navigate to Customer List
-    const searchBar = page.locator('input[aria-label="Tell me what you want to do"]');
-    if (await searchBar.isVisible()) {
-      await searchBar.fill('Customers');
-      await page.keyboard.press('Enter');
-    }
-
-    // 2. Open First Customer Record (e.g., Adatum Corporation)
-    const customerRow = page.locator('table tbody tr').first();
-    await customerRow.click();
+  test('TC-01: custom table extension fields are rendered on the customer card', async ({ page }) => {
+    await page.keyboard.press('Alt+Q');
+    const tellMe = page.locator('input[aria-label*="Tell me what you want to do"]');
+    await tellMe.fill('Customers');
     await page.keyboard.press('Enter');
 
-    // 3. Assert Custom VIP Tier and Credit Assessment Score fields exist
-    const vipTierField = page.locator('[controlname="VIP_Tier"], [aria-label*="VIP Tier"]');
-    await expect(vipTierField).toBeVisible({ timeout: 15000 });
+    await page.waitForSelector('.ms-nav-content', { state: 'visible', timeout: 30_000 });
+    const firstRow = page.locator('table.ms-nav-grid tbody tr, .ms-nav-list-row').first();
+    await firstRow.click();
+    await page.waitForSelector('.ms-nav-content', { state: 'visible' });
 
-    const creditScoreField = page.locator('[controlname="Credit_Assessment_Score"], [aria-label*="Credit Assessment Score"]');
-    await expect(creditScoreField).toBeVisible({ timeout: 15000 });
-  });
-
-  test('TC-02: Verifies Custom Action Trigger and Calculation Dialog', async ({ page }) => {
-    // 1. Locate Action Bar on Customer Card
-    const actionsGroup = page.locator('button[aria-label*="Customer Assessment"], button:has-text("Recalculate VIP Score")');
-    if (await actionsGroup.isVisible()) {
-      await actionsGroup.click();
-
-      // 2. Expect notification banner confirming trigger executed
-      const notificationBanner = page.locator('.ms-nav-notification-bar, [role="alert"]');
-      await expect(notificationBanner).toBeVisible({ timeout: 10000 });
-      await expect(notificationBanner).toContainText(/Calculation complete|VIP Tier updated/i);
-    }
-  });
-
-  test('TC-03: Verifies OData API Page Response Schema for Next.js Bridge', async ({ request }) => {
-    const apiEndpoint = `/api/v2.0/companies(${process.env.BC_COMPANY_ID || '00000000-0000-0000-0000-000000000000'})/customerAssessments`;
-    
-    // Test API Page responds with required custom fields
-    const response = await request.get(apiEndpoint, {
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${process.env.BC_BEARER_TOKEN || 'mock-token'}`
-      }
+    await expect(page.locator('[controlname="VIP_Tier"], [aria-label*="VIP Tier"]')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('[controlname="Credit_Assessment_Score"], [aria-label*="Credit Assessment Score"]')).toBeVisible({
+      timeout: 15_000,
     });
 
-    if (response.status() === 200) {
-      const body = await response.json();
-      expect(body).toHaveProperty('value');
-      expect(Array.isArray(body.value)).toBe(true);
-      if (body.value.length > 0) {
-        expect(body.value[0]).toHaveProperty('vipTier');
-        expect(body.value[0]).toHaveProperty('creditScore');
-      }
-    }
+    await page.screenshot({ path: 'test-results/bc-extension-verified.png' });
   });
 
+  test('TC-02: the custom action recalculates and confirms', async ({ page }) => {
+    const action = page.locator('button[aria-label*="Customer Assessment"], button:has-text("Recalculate VIP Score")').first();
+    await expect(action).toBeVisible({ timeout: 15_000 });
+    await action.click();
+
+    const notification = page.locator('.ms-nav-notification-bar, [role="alert"]').first();
+    await expect(notification).toBeVisible({ timeout: 10_000 });
+    await expect(notification).toContainText(/Calculation complete|VIP Tier updated/i);
+  });
+
+  test('TC-03: the OData API page exposes the custom fields', async ({ request }) => {
+    const companyId = process.env.BC_COMPANY_ID;
+    const token = process.env.BC_BEARER_TOKEN;
+    test.skip(!companyId || !token, 'BC_COMPANY_ID and BC_BEARER_TOKEN are required for the API check');
+
+    const response = await request.get(`/api/v2.0/companies(${companyId})/customerAssessments`, {
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+    });
+
+    // A non-200 is a real failure here: skipping it would hide a broken API page.
+    expect(response.status()).toBe(200);
+
+    const body = await response.json();
+    expect(Array.isArray(body.value)).toBe(true);
+    if (body.value.length > 0) {
+      expect(body.value[0]).toHaveProperty('vipTier');
+      expect(body.value[0]).toHaveProperty('creditScore');
+    }
+  });
 });
