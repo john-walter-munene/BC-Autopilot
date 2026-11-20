@@ -5,7 +5,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { BrowserAgentService } from "./browser-agent.service.ts";
+import { BrowserAgentService } from "../../apps/api/src/modules/browser-agent/browser-agent.service.ts";
 import type { BrowserRunRequest, BrowserRunResult } from "@bc-agent/shared";
 
 function buildService(run: (request: BrowserRunRequest) => Promise<BrowserRunResult>) {

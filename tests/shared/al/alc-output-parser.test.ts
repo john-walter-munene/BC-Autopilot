@@ -11,7 +11,7 @@ import {
   groupDiagnosticsByFile,
   parseAlcLine,
   parseAlcOutput,
-} from "./alc-output-parser.ts";
+} from "../../../packages/shared/src/al/alc-output-parser.ts";
 
 const SUCCESS_OUTPUT = [
   "Compiling project C:\\proj...",

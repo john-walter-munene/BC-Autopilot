@@ -12,7 +12,7 @@ import type {
   PlaywrightReportSummary,
   PlaywrightTestEntry,
 } from '../al/al-cli-types.ts';
-import type { PlaywrightStepResult } from '../types.ts';
+import type { PlaywrightStepResult } from '../core/types.ts';
 
 export const PLAYWRIGHT_REPORT_FILE = 'playwright-report.json';
 

@@ -6,7 +6,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { generateSha256Fingerprint } from '../crypto.ts';
+import { generateSha256Fingerprint } from '../core/crypto.ts';
 import { AlProjectWriter, alProjectWriter } from './al-project-writer.ts';
 import { AlcRunner, alcRunner, defaultOutputPath } from './alc-runner.ts';
 import { PublishService, publishService } from './publish-bridge.ts';

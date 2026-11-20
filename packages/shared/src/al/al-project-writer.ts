@@ -6,8 +6,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { BC_CONSTANTS } from '../constants.ts';
-import type { AppJsonManifest, AlExtensionFile } from '../types.ts';
+import { BC_CONSTANTS } from '../core/constants.ts';
+import type { AppJsonManifest, AlExtensionFile } from '../core/types.ts';
 import type { AlProjectWriteRequest, AlProjectWriteResult } from './al-cli-types.ts';
 
 export interface AlProjectWriterDeps {

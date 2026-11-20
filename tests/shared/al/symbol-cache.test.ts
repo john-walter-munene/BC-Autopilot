@@ -11,7 +11,7 @@ import {
   parseSymbolPackageName,
   SymbolCacheService,
   SYMBOL_CACHE_MANIFEST_NAME,
-} from "./symbol-cache.ts";
+} from "../../../packages/shared/src/al/symbol-cache.ts";
 
 /** Minimal in-memory filesystem for the cache service. */
 function createMemoryFs() {

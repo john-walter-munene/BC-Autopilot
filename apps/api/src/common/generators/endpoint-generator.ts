@@ -58,21 +58,12 @@ export interface Create${capitalEntity}Input {
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { EntraIdTokenProvider } from '@bc-agent/shared';
 
-interface TokenCache {
-  token: string;
-  expiresAt: number;
-}
-
-let cachedToken: TokenCache | null = null;
+// One provider per process: caching, early refresh, retry and redaction live in @bc-agent/shared.
+const tokenProvider = new EntraIdTokenProvider();
 
 async function getBCAccessToken(): Promise<string> {
-  const now = Date.now();
-  // Return cached token if valid for more than 60 seconds
-  if (cachedToken && cachedToken.expiresAt > now + 60000) {
-    return cachedToken.token;
-  }
-
   const tenantId = process.env.AZURE_TENANT_ID;
   const clientId = process.env.AZURE_CLIENT_ID;
   const clientSecret = process.env.AZURE_CLIENT_SECRET;
@@ -81,32 +72,8 @@ async function getBCAccessToken(): Promise<string> {
     throw new Error('Missing Microsoft Entra ID (Azure AD) environment variables.');
   }
 
-  const tokenEndpoint = \`https://login.microsoftonline.com/\${tenantId}/oauth2/v2.0/token\`;
-  const body = new URLSearchParams({
-    grant_type: 'client_credentials',
-    client_id: clientId,
-    client_secret: clientSecret,
-    scope: 'https://api.businesscentral.dynamics.com/.default',
-  });
-
-  const response = await fetch(tokenEndpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(\`Entra ID token acquisition failed (\${response.status}): \${errorText}\`);
-  }
-
-  const data = await response.json();
-  cachedToken = {
-    token: data.access_token,
-    expiresAt: now + (data.expires_in * 1000),
-  };
-
-  return cachedToken.token;
+  const token = await tokenProvider.getToken({ tenantId, clientId, clientSecret });
+  return token.accessToken;
 }
 
 // GET: Fetch records with optional $filter and $top

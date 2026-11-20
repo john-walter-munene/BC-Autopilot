@@ -5,13 +5,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
-import { Phase1Pipeline } from "./al-pipeline.ts";
-import { AlProjectWriter } from "./al-project-writer.ts";
-import { AlcRunner } from "./alc-runner.ts";
-import { PublishService } from "./publish-bridge.ts";
-import { generateSha256Fingerprint } from "../crypto.ts";
-import type { AppJsonManifest, AlExtensionFile } from "../types.ts";
-import { createFakeClock, createFakeExecFile } from "../testing/test-helpers.ts";
+import { Phase1Pipeline } from "../../../packages/shared/src/al/al-pipeline.ts";
+import { AlProjectWriter } from "../../../packages/shared/src/al/al-project-writer.ts";
+import { AlcRunner } from "../../../packages/shared/src/al/alc-runner.ts";
+import { PublishService } from "../../../packages/shared/src/al/publish-bridge.ts";
+import { generateSha256Fingerprint } from "../../../packages/shared/src/core/crypto.ts";
+import type { AppJsonManifest, AlExtensionFile } from "../../../packages/shared/src/core/types.ts";
+import { createFakeClock, createFakeExecFile } from "../../support/test-helpers.ts";
 
 const MANIFEST: AppJsonManifest = {
   id: "b182d83e-7a91-4e4c-b519-75a89f928e12",

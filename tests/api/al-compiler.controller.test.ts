@@ -5,14 +5,14 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { AlCompilerController } from "./al-compiler.controller.ts";
+import { AlCompilerController } from "../../apps/api/src/modules/al-compiler/al-compiler.controller.ts";
 import { Phase1Pipeline } from "@bc-agent/shared";
 import { AlProjectWriter } from "@bc-agent/shared";
 import { AlcRunner } from "@bc-agent/shared";
 import { PublishService } from "@bc-agent/shared";
 import { SymbolCacheService } from "@bc-agent/shared";
 import type { AppJsonManifest, AlExtensionFile } from "@bc-agent/shared";
-import { createFakeClock, createFakeExecFile } from "../../../../../packages/shared/src/testing/test-helpers.ts";
+import { createFakeClock, createFakeExecFile } from "../support/test-helpers.ts";
 
 const MANIFEST: AppJsonManifest = {
   id: "b182d83e-7a91-4e4c-b519-75a89f928e12",

@@ -5,7 +5,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { generatePlaywrightSuite, generatePlaywrightTestSuite } from "./playwright-generator.ts";
+import { generatePlaywrightSuite, generatePlaywrightTestSuite } from "../../apps/api/src/common/generators/playwright-generator.ts";
 import type { FunctionalRequirementDoc } from "@bc-agent/shared";
 
 const FRD: FunctionalRequirementDoc = {

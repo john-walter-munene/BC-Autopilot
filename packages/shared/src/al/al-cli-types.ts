@@ -3,7 +3,7 @@
  * Phase 1: physical compiler integration, symbol package caching, and publish bridge
  */
 
-import type { AppJsonManifest, AlExtensionFile } from '../types.ts';
+import type { AppJsonManifest, AlExtensionFile } from '../core/types.ts';
 
 export type AlcDiagnosticSeverity = 'error' | 'warning' | 'info';
 

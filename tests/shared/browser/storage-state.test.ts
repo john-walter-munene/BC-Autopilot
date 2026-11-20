@@ -12,7 +12,7 @@ import {
   inspectStorageState,
   summariseStorageState,
   BC_AUTH_COOKIE_NAMES,
-} from "./storage-state.ts";
+} from "../../../packages/shared/src/browser/storage-state.ts";
 
 const NOW = Date.parse("2026-11-16T12:00:00.000Z");
 

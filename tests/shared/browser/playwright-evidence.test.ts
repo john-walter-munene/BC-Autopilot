@@ -6,12 +6,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
-import { PlaywrightEvidencePipeline, type PlaywrightEvidenceDeps } from "./playwright-evidence.ts";
-import { PlaywrightRunner } from "./playwright-runner.ts";
-import { StorageStateService } from "./storage-state.ts";
-import { PLAYWRIGHT_REPORT_FILE } from "./playwright-report.ts";
+import { PlaywrightEvidencePipeline, type PlaywrightEvidenceDeps } from "../../../packages/shared/src/browser/playwright-evidence.ts";
+import { PlaywrightRunner } from "../../../packages/shared/src/browser/playwright-runner.ts";
+import { StorageStateService } from "../../../packages/shared/src/browser/storage-state.ts";
+import { PLAYWRIGHT_REPORT_FILE } from "../../../packages/shared/src/browser/playwright-report.ts";
 
-import { createFakeClock, createFakeExecFile } from "../testing/test-helpers.ts";
+import { createFakeClock, createFakeExecFile } from "../../support/test-helpers.ts";
 
 const ROOT = path.resolve("C:\\proj");
 const AUTH = path.join(ROOT, "auth", "bc-storage-state.json");

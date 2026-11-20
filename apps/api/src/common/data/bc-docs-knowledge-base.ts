@@ -413,43 +413,18 @@ test.describe('Dynamics 365 Business Central Web Client Customization Suite', ()
         label: 'Next.js Route Handler for Business Central REST API (app/api/bc/route.ts)',
         language: 'typescript',
         code: `import { NextRequest, NextResponse } from 'next/server';
+import { EntraIdTokenProvider } from '@bc-agent/shared';
 
-let cachedToken: { token: string; expiresAt: number } | null = null;
+// Token caching, early refresh, retry and secret redaction live in @bc-agent/shared.
+const tokenProvider = new EntraIdTokenProvider();
 
 async function getBCAccessToken(): Promise<string> {
-  const now = Date.now();
-  if (cachedToken && cachedToken.expiresAt > now + 60000) {
-    return cachedToken.token;
-  }
-
-  const tenantId = process.env.AZURE_TENANT_ID!;
-  const clientId = process.env.AZURE_CLIENT_ID!;
-  const clientSecret = process.env.AZURE_CLIENT_SECRET!;
-
-  const tokenUrl = \`https://login.microsoftonline.com/\${tenantId}/oauth2/v2.0/token\`;
-  const params = new URLSearchParams({
-    grant_type: 'client_credentials',
-    client_id: clientId,
-    client_secret: clientSecret,
-    scope: 'https://api.businesscentral.dynamics.com/.default'
+  const token = await tokenProvider.getToken({
+    tenantId: process.env.AZURE_TENANT_ID!,
+    clientId: process.env.AZURE_CLIENT_ID!,
+    clientSecret: process.env.AZURE_CLIENT_SECRET!,
   });
-
-  const res = await fetch(tokenUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params.toString()
-  });
-
-  if (!res.ok) {
-    throw new Error(\`Failed to fetch BC token: \${res.statusText}\`);
-  }
-
-  const data = await res.json();
-  cachedToken = {
-    token: data.access_token,
-    expiresAt: now + (data.expires_in * 1000)
-  };
-  return cachedToken.token;
+  return token.accessToken;
 }
 
 export async function GET(req: NextRequest) {

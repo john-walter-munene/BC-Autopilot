@@ -13,10 +13,13 @@ apps/
   web/
     src/                         React engineering console
 packages/
-  shared/src/                    Compiler runner, project writer, symbols, publish,
-                                 sandbox, pipeline, common types and errors
+  shared/src/                    Production modules only: core/, al/, browser/, bc/
+                                 (see docs/07-TESTING.md for the layout)
+  shared/src/al/                 Compiler runner, project writer, symbols, publish, sandbox, pipeline
+  shared/src/browser/            Storage state, Playwright runner, report parsing, evidence
+  shared/src/bc/                 Entra ID token provider (OData client in progress)
 bin/bc-agent.ts                  Local CLI using shared services
-tests/                           Unit/CLI and optional live browser tests
+tests/                           All automated tests, grouped by domain (see docs/07-TESTING.md)
 docs/                            Product and engineering documentation
 ```
 
