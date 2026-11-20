@@ -71,6 +71,10 @@ Commands:
                  --url <url>          Override the BC web client URL
                  --max-runs <n>       Keep at most n evidence runs
 
+  login          Sign in interactively and capture a session for browse
+                 --url <url>          Business Central web client URL (https)
+                 --auth-state <file>  Where to write the state (default: auth/bc-storage-state.json)
+
   settle         Print the SHA-256 fingerprint of generated AL sources
   doctor         Report toolchain availability (alc.exe, PowerShell)
   help           Show this manual
@@ -215,6 +219,55 @@ async function main(): Promise<void> {
       }
       if (outcome.failureReason) console.error(`[browse] ${outcome.failureReason}`);
       if (!outcome.success) process.exitCode = 1;
+      break;
+    }
+
+    case "login": {
+      const url = flag("url");
+      const outPath = flag("auth-state", DEFAULT_STORAGE_STATE_PATH)!;
+
+      if (!url) {
+        console.error("[login] --url is required, e.g. --url=https://businesscentral.dynamics.com/<tenant>/<environment>");
+        process.exitCode = 1;
+        return;
+      }
+      if (!/^https:\/\//i.test(url)) {
+        console.error(`[login] --url must be an https Business Central URL, got: ${url}`);
+        process.exitCode = 1;
+        return;
+      }
+
+      const { chromium } = await import("playwright");
+      const { captureBusinessCentralSession, StorageStateService } = await import("@bc-agent/shared");
+
+      console.log(`[login] Opening ${url}`);
+      console.log("[login] Sign in, then press Enter in this terminal to finish.");
+
+      const inspection = await captureBusinessCentralSession(
+        { url, outPath },
+        {
+          browser: chromium as never,
+          storageState: new StorageStateService(),
+          waitForOperator: () =>
+            new Promise<void>(resolve => {
+              process.stdin.resume();
+              process.stdin.once("data", () => {
+                process.stdin.pause();
+                resolve();
+              });
+            }),
+        }
+      ).catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        if (/Executable doesn't exist|Please run the following command/i.test(message)) {
+          throw new Error("The Playwright Chromium build is not installed. Run: npx playwright install chromium");
+        }
+        throw error;
+      });
+
+      console.log(`[login] Session captured: ${inspection.cookieCount} cookie(s), expires ${inspection.expiresAt ?? "with the session"}`);
+      console.log(`[login] Written to ${inspection.path}`);
+      console.log("[login] Next: npm run cli -- browse");
       break;
     }
 

@@ -6,7 +6,7 @@
 import { execFile as nodeExecFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { resolvePowershellPath } from '../powershell.ts';
+import { resolvePowershellPath } from './powershell.ts';
 import type { PublishDeps, PublishRequest, PublishResult } from './al-cli-types.ts';
 
 const DEFAULT_TIMEOUT_MS = 600_000;

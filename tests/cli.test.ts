@@ -82,3 +82,42 @@ describe("BC Agent CLI browse", () => {
     }
   });
 });
+
+describe("BC Agent CLI login", () => {
+  it("appears in help alongside browse", () => {
+    const output = runCli(["help"]);
+    assert.match(output, /^ {2}login\s/m);
+    assert.match(output, /--auth-state <file>/);
+  });
+
+  it("refuses a non-https sign-in URL before launching a browser", () => {
+    const result = spawnSync(
+      process.execPath,
+      ["--experimental-strip-types", cliPath, "login", "--url=http://bc.example", `--out=${path.join(os.tmpdir(), "never.json")}`],
+      { cwd: repositoryRoot, encoding: "utf8" }
+    );
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /https/i);
+  });
+
+  it("requires a --url", () => {
+    const result = spawnSync(process.execPath, ["--experimental-strip-types", cliPath, "login"], {
+      cwd: repositoryRoot,
+      encoding: "utf8",
+    });
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /--url/i);
+  });
+});
+
+describe("BC Agent CLI login and browse wiring", () => {
+  it("onboarding order is visible in help: login produces the state browse consumes", () => {
+    const output = runCli(["help"]);
+    const loginIndex = output.indexOf("  login");
+    const browseIndex = output.indexOf("  browse");
+    assert.ok(loginIndex >= 0 && browseIndex >= 0);
+    assert.equal(output.includes("default: auth/bc-storage-state.json"), true);
+  });
+});

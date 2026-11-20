@@ -4,8 +4,8 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { PublishService, buildPublishArgs } from "./publish-bridge.ts";
-import { createFakeClock, createFakeExecFile } from "../testing/test-helpers.ts";
+import { PublishService, buildPublishArgs } from "../../../packages/shared/src/al/publish-bridge.ts";
+import { createFakeClock, createFakeExecFile } from "../../support/test-helpers.ts";
 
 const APP = "C:\\dist\\alc_BCCustomerScoring_1.0.0.0.app";
 

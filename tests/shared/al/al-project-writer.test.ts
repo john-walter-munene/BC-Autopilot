@@ -9,8 +9,8 @@ import {
   AlProjectWriter,
   buildAppJson,
   sanitiseFileName,
-} from "./al-project-writer.ts";
-import type { AppJsonManifest, AlExtensionFile } from "../types.ts";
+} from "../../../packages/shared/src/al/al-project-writer.ts";
+import type { AppJsonManifest, AlExtensionFile } from "../../../packages/shared/src/core/types.ts";
 
 const MANIFEST: AppJsonManifest = {
   id: "b182d83e-7a91-4e4c-b519-75a89f928e12",

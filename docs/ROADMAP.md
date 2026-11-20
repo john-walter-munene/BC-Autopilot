@@ -58,6 +58,24 @@ Phase 2 item requires a live Business Central tenant and stays open.
 - [ ] Add webhook and batch synchronization workflows.
 - [ ] Define and test a production persistence and process-safe background queue.
 
+The token half of the first item is implemented (`packages/shared/src/bc/token-provider.ts`):
+client-credentials flow with a **per-tenant, per-client, per-secret** cache (a single shared token
+leaked across tenants before this change), early refresh inside a 5-minute skew window, single-flight
+so concurrent callers share one request, retry with `Retry-After`/exponential backoff for `408`/`429`/`5xx`
+only, a request timeout, and client-secret redaction in every error message.
+
+The OData half is implemented (`packages/shared/src/bc/odata-client.ts`): bearer injection, typed
+`BcODataError` mapping (`unauthorized`, `forbidden`, `not_found`, `validation`, `conflict`,
+`rate_limited`, `server`, `network`, `timeout`), `@odata.nextLink` paging bounded by `maxPages`, and
+a single 401 recovery that replays idempotent `GET`s only — a write is never duplicated.
+
+`auth.service.ts` is now a thin adapter over the shared provider; `repo-import`, the endpoint
+generator and the knowledge-base snippet all use it, so there is exactly one token implementation.
+`npm run cli -- login` captures the interactive session that `browse` requires.
+
+Verified against a fake transport, not a live tenant. Live validation and the remaining Phase 3
+items (webhooks, batch sync, process-safe queue) stay open.
+
 ## Phase 4 — Distribution and operations
 
 - [ ] Add production monitoring, release validation and AppSource packaging checks.

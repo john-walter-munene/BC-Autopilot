@@ -5,6 +5,7 @@
  */
 
 import type { ImportedWebEntity, ImportedApiRoute, RepoImportResult } from './dto/repo-import.dto.ts';
+import { generateBcClientSdk } from '../../common/generators/bc-client-sdk-generator.ts';
 
 export class RepoImporterService {
   async analyzeRepository(repoUrlOrPath: string): Promise<RepoImportResult> {
@@ -66,49 +67,8 @@ export class RepoImporterService {
       }
     ];
 
-    const clientSdkCode = `/**
- * Drop-in Business Central Client SDK for Imported Next.js App
- * Generated autonomously by Alchemy365 in context of ${repoUrlOrPath}
- */
-
-import { headers } from 'next/headers';
-
-export async function getBcAuthenticatedClient() {
-  const tokenRes = await fetch(\`https://login.microsoftonline.com/\${process.env.BC_TENANT_ID}/oauth2/v2.0/token\`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: process.env.BC_CLIENT_ID || '',
-      client_secret: process.env.BC_CLIENT_SECRET || '',
-      scope: 'https://api.businesscentral.dynamics.com/.default'
-    })
-  });
-
-  const { access_token } = await tokenRes.json();
-  const baseUrl = \`https://api.businesscentral.dynamics.com/v2.0/\${process.env.BC_TENANT_ID}/\${process.env.BC_ENVIRONMENT || 'Sandbox'}/api/alc/integrations/v2.0/companies(\${process.env.BC_COMPANY_ID})\`;
-
-  return {
-    async getCustomerProfiles() {
-      const res = await fetch(\`\${baseUrl}/customerProfiles\`, {
-        headers: { Authorization: \`Bearer \${access_token}\`, Accept: 'application/json' }
-      });
-      return res.json();
-    },
-    async submitOnlineOrder(payload: any) {
-      const res = await fetch(\`\${baseUrl}/onlineOrders\`, {
-        method: 'POST',
-        headers: {
-          Authorization: \`Bearer \${access_token}\`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-      return res.json();
-    }
-  };
-}
-`;
+    // Token acquisition lives in @bc-agent/shared; the emitted SDK must not re-implement it.
+    const clientSdkCode = generateBcClientSdk(repoUrlOrPath);
 
     return {
       repoUrlOrPath,

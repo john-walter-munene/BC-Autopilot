@@ -13,7 +13,7 @@ import {
   buildPlaywrightArgs,
   isPlaywrightReport,
   PLAYWRIGHT_REPORT_FILE,
-} from "./playwright-report.ts";
+} from "../../../packages/shared/src/browser/playwright-report.ts";
 
 function reportFixture(overrides: Record<string, unknown> = {}) {
   return {

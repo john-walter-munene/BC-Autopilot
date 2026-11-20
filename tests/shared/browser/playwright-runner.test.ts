@@ -6,9 +6,9 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
-import { PlaywrightRunner, extractJson, playwrightCommand, type PlaywrightRunDeps } from "./playwright-runner.ts";
-import { PLAYWRIGHT_REPORT_FILE } from "./playwright-report.ts";
-import { createFakeClock, createFakeExecFile } from "../testing/test-helpers.ts";
+import { PlaywrightRunner, extractJson, playwrightCommand, type PlaywrightRunDeps } from "../../../packages/shared/src/browser/playwright-runner.ts";
+import { PLAYWRIGHT_REPORT_FILE } from "../../../packages/shared/src/browser/playwright-report.ts";
+import { createFakeClock, createFakeExecFile } from "../../support/test-helpers.ts";
 
 const ROOT = path.resolve("C:\\proj");
 const REPORT_PATH = path.join(ROOT, "test-results", PLAYWRIGHT_REPORT_FILE);

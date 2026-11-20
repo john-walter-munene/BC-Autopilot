@@ -13,8 +13,8 @@ import {
   EVIDENCE_MANIFEST_NAME,
   type EvidenceSource,
   type RetainedRun,
-} from "./run-evidence.ts";
-import { at } from "../testing/test-helpers.ts";
+} from "../../../packages/shared/src/browser/run-evidence.ts";
+import { at } from "../../support/test-helpers.ts";
 
 const NOW = Date.parse("2026-11-16T12:00:00.000Z");
 const EVIDENCE_DIR = path.resolve("C:\\proj\\test-results\\evidence");

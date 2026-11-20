@@ -11,8 +11,8 @@ import {
   DEFAULT_DEV_SERVICE_PORT,
   DEFAULT_ODATA_PORT,
   DEFAULT_WEB_CLIENT_PORT,
-} from "./container-sandbox.ts";
-import { createFakeClock, createFakeExecFile } from "../testing/test-helpers.ts";
+} from "../../../packages/shared/src/al/container-sandbox.ts";
+import { createFakeClock, createFakeExecFile } from "../../support/test-helpers.ts";
 
 describe("deriveContainerEndpoints", () => {
   it("derives web client, OData and dev service URLs from default ports", () => {
